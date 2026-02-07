@@ -35,6 +35,31 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
+  # System tray
+  tray_manager: ^0.2.3
+
+  # Window management
+  window_manager: ^0.4.3
+
+  # HTTP client
+  http: ^1.2.2
+
+  # Open URLs (OAuth)
+  url_launcher: ^6.3.1
+
+  # Local storage
+  shared_preferences: ^2.3.3
+
+  # File paths
+  path_provider: ^2.1.5
+
+  # Crypto for PKCE
+  crypto: ^3.0.6
+
+  # Local HTTP server for OAuth callback
+  shelf: ^1.4.2
+  shelf_router: ^1.1.4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
