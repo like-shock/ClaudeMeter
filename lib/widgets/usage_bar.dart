@@ -51,7 +51,7 @@ class UsageBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF313244).withOpacity(0.6),
+        color: const Color(0xFF313244).withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -84,7 +84,7 @@ class UsageBar extends StatelessWidget {
           Container(
             height: 8,
             decoration: BoxDecoration(
-              color: const Color(0xFF45475A).withOpacity(0.8),
+              color: const Color(0xFF45475A).withValues(alpha: 0.8),
               borderRadius: BorderRadius.circular(4),
             ),
             child: FractionallySizedBox(

@@ -180,13 +180,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               activeTrackColor: const Color(0xFF89B4FA),
               inactiveTrackColor: const Color(0xFF45475A),
               thumbColor: const Color(0xFF89B4FA),
-              overlayColor: const Color(0xFF89B4FA).withOpacity(0.2),
+              overlayColor: const Color(0xFF89B4FA).withValues(alpha: 0.2),
             ),
             child: Slider(
               value: _localConfig.refreshIntervalSeconds.toDouble(),
-              min: 5,
+              min: 10,
               max: 300,
-              divisions: 59,
+              divisions: 29,
               onChanged: (v) => _updateConfig(refreshIntervalSeconds: v.round()),
             ),
           ),
@@ -210,9 +210,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: const Color(0xFFF38BA8).withOpacity(0.2),
+          color: const Color(0xFFF38BA8).withValues(alpha: 0.2),
           border: Border.all(
-            color: const Color(0xFFF38BA8).withOpacity(0.3),
+            color: const Color(0xFFF38BA8).withValues(alpha: 0.3),
           ),
           borderRadius: BorderRadius.circular(6),
         ),
@@ -247,7 +247,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF45475A).withOpacity(0.5),
+                  color: const Color(0xFF45475A).withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: const Text(

@@ -11,7 +11,8 @@ class HomeScreen extends StatelessWidget {
   final String? loginError;
   final UsageData? usageData;
   final AppConfig config;
-  final VoidCallback onLogin;
+  final Future<void> Function() onStartLogin;
+  final Future<bool> Function(String code) onSubmitCode;
   final VoidCallback onRefresh;
   final VoidCallback onSettings;
 
@@ -22,7 +23,8 @@ class HomeScreen extends StatelessWidget {
     this.loginError,
     this.usageData,
     required this.config,
-    required this.onLogin,
+    required this.onStartLogin,
+    required this.onSubmitCode,
     required this.onRefresh,
     required this.onSettings,
   });
@@ -38,7 +40,8 @@ class HomeScreen extends StatelessWidget {
               : LoginView(
                   isLoading: isLoading,
                   error: loginError,
-                  onLogin: onLogin,
+                  onStartLogin: onStartLogin,
+                  onSubmitCode: onSubmitCode,
                 ),
         ),
       ],
@@ -49,7 +52,7 @@ class HomeScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF313244).withOpacity(0.8),
+        color: const Color(0xFF313244).withValues(alpha: 0.8),
         border: const Border(
           bottom: BorderSide(
             color: Color(0xFF45475A),

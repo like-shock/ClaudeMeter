@@ -10,11 +10,27 @@ class Credentials {
     required this.expiresAt,
   });
 
+  /// Parse credentials from JSON with defensive type checking.
+  /// Throws [FormatException] if required fields are missing or invalid.
   factory Credentials.fromJson(Map<String, dynamic> json) {
+    final accessToken = json['accessToken'];
+    final refreshToken = json['refreshToken'];
+    final expiresAt = json['expiresAt'];
+
+    if (accessToken != null && accessToken is! String) {
+      throw const FormatException('accessToken must be a String');
+    }
+    if (refreshToken != null && refreshToken is! String) {
+      throw const FormatException('refreshToken must be a String');
+    }
+    if (expiresAt != null && expiresAt is! int) {
+      throw const FormatException('expiresAt must be an int');
+    }
+
     return Credentials(
-      accessToken: json['accessToken'] as String? ?? '',
-      refreshToken: json['refreshToken'] as String? ?? '',
-      expiresAt: json['expiresAt'] as int? ?? 0,
+      accessToken: (accessToken as String?) ?? '',
+      refreshToken: (refreshToken as String?) ?? '',
+      expiresAt: (expiresAt as int?) ?? 0,
     );
   }
 
@@ -49,4 +65,11 @@ class Credentials {
       expiresAt: expiresAt ?? this.expiresAt,
     );
   }
+
+  /// Create a cleared/empty credentials instance (for secure token wiping).
+  static const Credentials empty = Credentials(
+    accessToken: '',
+    refreshToken: '',
+    expiresAt: 0,
+  );
 }

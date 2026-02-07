@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/config.dart';
 
@@ -18,10 +19,26 @@ class ConfigService {
       final jsonStr = prefs.getString(_configKey);
 
       if (jsonStr != null) {
-        final json = jsonDecode(jsonStr) as Map<String, dynamic>;
-        _config = AppConfig.fromJson(json);
+        final decoded = jsonDecode(jsonStr);
+        if (decoded is Map<String, dynamic>) {
+          _config = AppConfig.fromJson(decoded);
+        } else {
+          developer.log(
+            'Config data is not a valid JSON object, using defaults',
+            name: 'ConfigService',
+            level: 900, // WARNING
+          );
+          _config = AppConfig.defaultConfig;
+        }
       }
-    } catch (_) {
+    } catch (e, stackTrace) {
+      developer.log(
+        'Failed to load config',
+        name: 'ConfigService',
+        error: e,
+        stackTrace: stackTrace,
+        level: 900, // WARNING
+      );
       _config = AppConfig.defaultConfig;
     }
   }
@@ -33,8 +50,14 @@ class ConfigService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_configKey, jsonEncode(config.toJson()));
-    } catch (_) {
-      // Ignore save errors
+    } catch (e, stackTrace) {
+      developer.log(
+        'Failed to save config',
+        name: 'ConfigService',
+        error: e,
+        stackTrace: stackTrace,
+        level: 900, // WARNING
+      );
     }
   }
 }

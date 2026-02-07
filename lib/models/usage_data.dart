@@ -8,19 +8,26 @@ class UsageTier {
     this.resetsAt,
   });
 
+  /// Parse from JSON with defensive type checking.
   factory UsageTier.fromJson(Map<String, dynamic>? json) {
     if (json == null) {
       return const UsageTier();
     }
 
     DateTime? resetsAt;
-    final resetsAtStr = json['resets_at'] as String?;
-    if (resetsAtStr != null) {
-      resetsAt = DateTime.tryParse(resetsAtStr);
+    final resetsAtRaw = json['resets_at'];
+    if (resetsAtRaw is String) {
+      resetsAt = DateTime.tryParse(resetsAtRaw);
+    }
+
+    double utilization = 0.0;
+    final utilizationRaw = json['utilization'];
+    if (utilizationRaw is num) {
+      utilization = utilizationRaw.toDouble().clamp(0.0, 1.0);
     }
 
     return UsageTier(
-      utilization: (json['utilization'] as num?)?.toDouble() ?? 0.0,
+      utilization: utilization,
       resetsAt: resetsAt,
     );
   }
@@ -43,12 +50,19 @@ class UsageData {
     required this.fetchedAt,
   });
 
+  /// Parse from JSON with defensive type checking.
   factory UsageData.fromJson(Map<String, dynamic> json) {
+    final fiveHourRaw = json['five_hour'];
+    final sevenDayRaw = json['seven_day'];
+    final sevenDaySonnetRaw = json['seven_day_sonnet'];
+
     return UsageData(
-      fiveHour: UsageTier.fromJson(json['five_hour'] as Map<String, dynamic>?),
-      sevenDay: UsageTier.fromJson(json['seven_day'] as Map<String, dynamic>?),
-      sevenDaySonnet:
-          UsageTier.fromJson(json['seven_day_sonnet'] as Map<String, dynamic>?),
+      fiveHour: UsageTier.fromJson(
+          fiveHourRaw is Map<String, dynamic> ? fiveHourRaw : null),
+      sevenDay: UsageTier.fromJson(
+          sevenDayRaw is Map<String, dynamic> ? sevenDayRaw : null),
+      sevenDaySonnet: UsageTier.fromJson(
+          sevenDaySonnetRaw is Map<String, dynamic> ? sevenDaySonnetRaw : null),
       fetchedAt: DateTime.now(),
     );
   }

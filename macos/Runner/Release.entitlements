@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
+<!--
+  SECURITY NOTE: com.apple.security.network.server is required for the OAuth
+  callback server. The server lifetime is minimized in OAuthService:
+  - Server is bound only during active login flow
+  - Auto-closes immediately after receiving a valid callback
+  - Request count is limited to prevent abuse
+  - Consider migrating to Custom URL Scheme to remove this entitlement entirely
+-->
 <dict>
 	<key>com.apple.security.app-sandbox</key>
 	<true/>
