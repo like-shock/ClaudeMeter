@@ -23,7 +23,8 @@ class UsageTier {
     double utilization = 0.0;
     final utilizationRaw = json['utilization'];
     if (utilizationRaw is num) {
-      utilization = utilizationRaw.toDouble().clamp(0.0, 1.0);
+      // API returns percentage directly (0-100)
+      utilization = utilizationRaw.toDouble().clamp(0.0, 100.0);
     }
 
     return UsageTier(
@@ -33,7 +34,7 @@ class UsageTier {
   }
 
   /// Returns utilization as percentage (0-100).
-  int get percentage => (utilization * 100).round();
+  int get percentage => utilization.round();
 }
 
 /// Complete usage data from Claude API.

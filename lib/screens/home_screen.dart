@@ -9,6 +9,8 @@ class HomeScreen extends StatelessWidget {
   final bool isLoggedIn;
   final bool isLoading;
   final String? loginError;
+  final String? usageError;
+  final String? userEmail;
   final UsageData? usageData;
   final AppConfig config;
   final VoidCallback onLogin;
@@ -20,6 +22,8 @@ class HomeScreen extends StatelessWidget {
     required this.isLoggedIn,
     required this.isLoading,
     this.loginError,
+    this.usageError,
+    this.userEmail,
     this.usageData,
     required this.config,
     required this.onLogin,
@@ -122,6 +126,38 @@ class HomeScreen extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
+          // Error message
+          if (usageError != null)
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF38BA8).withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: const Color(0xFFF38BA8).withValues(alpha: 0.5),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.warning_amber_rounded,
+                    color: Color(0xFFF38BA8),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      usageError!,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFFF38BA8),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           if (config.showFiveHour)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -146,17 +182,39 @@ class HomeScreen extends StatelessWidget {
                 tier: data.sevenDaySonnet,
               ),
             ),
-          if (usageData != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(
-                '마지막 업데이트: ${_formatTime(data.fetchedAt)}',
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: Color(0xFF6C7086),
+          // User info and last update
+          if (usageData != null) ...[
+            const SizedBox(height: 8),
+            if (userEmail != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.account_circle_outlined,
+                      size: 14,
+                      color: Color(0xFF6C7086),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      userEmail!,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF6C7086),
+                      ),
+                    ),
+                  ],
                 ),
               ),
+            Text(
+              '마지막 업데이트: ${_formatTime(data.fetchedAt)}',
+              style: const TextStyle(
+                fontSize: 11,
+                color: Color(0xFF6C7086),
+              ),
             ),
+          ],
         ],
       ),
     );

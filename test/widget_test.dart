@@ -11,7 +11,8 @@ import 'package:claude_monitor_flutter/widgets/login_view.dart';
 void main() {
   group('UsageBar', () {
     testWidgets('displays label and percentage', (WidgetTester tester) async {
-      const tier = UsageTier(utilization: 0.45);
+      // API returns percentage directly (0-100)
+      const tier = UsageTier(utilization: 45.0);
 
       await tester.pumpWidget(
         const MaterialApp(
@@ -29,7 +30,8 @@ void main() {
     });
 
     testWidgets('shows green color for low usage', (WidgetTester tester) async {
-      const tier = UsageTier(utilization: 0.3);
+      // API returns percentage directly (0-100)
+      const tier = UsageTier(utilization: 30.0);
 
       await tester.pumpWidget(
         const MaterialApp(

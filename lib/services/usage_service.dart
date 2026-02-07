@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import '../models/usage_data.dart';
 import '../utils/constants.dart';
 import 'oauth_service.dart';
@@ -26,6 +27,47 @@ class UsageService {
       return false;
     };
     return client;
+  }
+
+  /// Fetch user profile from the API.
+  Future<String?> fetchUserEmail() async {
+    final token = await _oauthService.getAccessToken();
+    if (token == null) return null;
+
+    final client = _createSecureHttpClient();
+    try {
+      final uri = Uri.parse(ApiConstants.profileUrl);
+      final request = await client.getUrl(uri);
+
+      request.headers.set('Authorization', 'Bearer $token');
+      request.headers.set('User-Agent', ApiConstants.userAgent);
+
+      final response = await request.close().timeout(ApiConstants.apiTimeout);
+      final responseBody = await response.transform(utf8.decoder).join();
+
+      if (response.statusCode != 200) {
+        debugPrint('Profile API error: ${response.statusCode}');
+        return null;
+      }
+
+      debugPrint('Profile API response: $responseBody');
+      
+      final json = jsonDecode(responseBody);
+      if (json is! Map<String, dynamic>) return null;
+      
+      // API returns account.email
+      final account = json['account'];
+      if (account is Map<String, dynamic>) {
+        return account['email'] as String? ?? 
+               account['display_name'] as String?;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Profile fetch error: $e');
+      return null;
+    } finally {
+      client.close();
+    }
   }
 
   /// Fetch current usage data from the API.
@@ -61,6 +103,8 @@ class UsageService {
         throw Exception('API error: ${response.statusCode}');
       }
 
+      debugPrint('Usage API response: $responseBody');
+      
       final json = jsonDecode(responseBody);
       if (json is! Map<String, dynamic>) {
         throw const FormatException('Usage response is not a JSON object');

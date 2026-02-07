@@ -3,61 +3,30 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/credentials.dart';
 import '../utils/constants.dart';
 import '../utils/pkce.dart';
 
 /// OAuth service for Claude authentication.
-///
-/// Uses local HTTP callback server for automatic code exchange,
-/// matching the original ClaudeMonitor Python implementation.
+/// Uses file-based storage (~/.claude/.credentials.json) like the Python reference.
 class OAuthService {
   Credentials? _credentials;
 
-  static const String _secureStorageKey = 'claude_oauth_credentials';
-
-  static String get _legacyCredentialsPath {
+  static String get _credentialsPath {
     final home = Platform.environment['HOME'] ?? '.';
     return '$home/${CredentialsConstants.credentialsFile}';
   }
 
-  final FlutterSecureStorage _secureStorage;
-
-  OAuthService({FlutterSecureStorage? secureStorage})
-      : _secureStorage = secureStorage ??
-            const FlutterSecureStorage(
-              aOptions: AndroidOptions(encryptedSharedPreferences: true),
-              mOptions: MacOsOptions(
-                accessibility: KeychainAccessibility.first_unlock_this_device,
-              ),
-            );
+  OAuthService();
 
   bool get hasCredentials => _credentials?.hasCredentials ?? false;
   Credentials? get credentials => _credentials;
 
-  /// Load credentials from secure storage.
+  /// Load credentials from file.
   Future<void> loadCredentials() async {
     try {
-      final jsonStr = await _secureStorage.read(key: _secureStorageKey);
-      if (jsonStr != null) {
-        final json = jsonDecode(jsonStr) as Map<String, dynamic>;
-        _credentials = Credentials.fromJson(json);
-        return;
-      }
-      await _migrateFromLegacyFile();
-    } catch (e, stackTrace) {
-      developer.log('Failed to load credentials',
-          name: 'OAuthService', error: e, stackTrace: stackTrace, level: 900);
-      _credentials = null;
-    }
-  }
-
-  /// Migrate credentials from legacy plaintext file to secure storage.
-  Future<void> _migrateFromLegacyFile() async {
-    try {
-      final file = File(_legacyCredentialsPath);
+      final file = File(_credentialsPath);
       if (!await file.exists()) {
         _credentials = null;
         return;
@@ -77,43 +46,43 @@ class OAuthService {
       }
 
       _credentials = Credentials.fromJson(oauthData);
-
-      await _secureStorage.write(
-        key: _secureStorageKey,
-        value: jsonEncode(_credentials!.toJson()),
-      );
-
-      json.remove(CredentialsConstants.credentialsKey);
-      if (json.isEmpty) {
-        await file.delete();
-      } else {
-        await file.writeAsString(jsonEncode(json));
-      }
-
-      developer.log('Migrated credentials from plaintext file to secure storage',
-          name: 'OAuthService', level: 800);
+      debugPrint('OAuth: Credentials loaded');
     } catch (e, stackTrace) {
-      developer.log('Failed to migrate legacy credentials',
+      developer.log('Failed to load credentials',
           name: 'OAuthService', error: e, stackTrace: stackTrace, level: 900);
       _credentials = null;
     }
   }
 
-  /// Save credentials to secure storage.
+  /// Save credentials to file.
   Future<void> saveCredentials(Credentials creds) async {
     try {
-      await _secureStorage.write(
-        key: _secureStorageKey,
-        value: jsonEncode(creds.toJson()),
-      );
+      final file = File(_credentialsPath);
+      
+      // Read existing file to preserve other keys
+      Map<String, dynamic> existing = {};
+      if (await file.exists()) {
+        try {
+          final content = await file.readAsString();
+          existing = jsonDecode(content) as Map<String, dynamic>;
+        } catch (_) {}
+      }
+
+      existing[CredentialsConstants.credentialsKey] = creds.toJson();
+
+      // Ensure directory exists
+      await file.parent.create(recursive: true);
+      await file.writeAsString(jsonEncode(existing));
       _credentials = creds;
+      debugPrint('OAuth: Credentials saved');
     } catch (e, stackTrace) {
-      developer.log('Failed to save credentials to secure storage',
+      developer.log('Failed to save credentials',
           name: 'OAuthService', error: e, stackTrace: stackTrace, level: 1000);
       rethrow;
     }
   }
 
+  /// Create secure HTTP client.
   HttpClient _createSecureHttpClient() {
     final client = HttpClient();
     client.badCertificateCallback = (cert, host, port) {
@@ -124,6 +93,7 @@ class OAuthService {
     return client;
   }
 
+  /// Make secure POST request.
   Future<({int statusCode, String body})> _securePost(
     String url,
     Map<String, String> headers,
@@ -151,7 +121,6 @@ class OAuthService {
   }
 
   /// Full OAuth login flow with local callback server.
-  /// Opens browser, waits for callback, exchanges code for tokens.
   Future<bool> login() async {
     HttpServer? server;
 
@@ -238,7 +207,7 @@ class OAuthService {
       // Exchange code for tokens
       debugPrint('OAuth: Exchanging code for tokens...');
       await _exchangeCode(authCode!, verifier, state, redirectUri);
-      debugPrint('OAuth: Token exchange successful!');
+      debugPrint('OAuth: Login successful!');
       return true;
     } catch (e, stackTrace) {
       debugPrint('OAuth: Login failed: $e');
@@ -367,63 +336,64 @@ class OAuthService {
       'refresh_token': _credentials!.refreshToken,
     });
 
-    try {
-      final (:statusCode, body: responseBody) = await _securePost(
-        ApiConstants.tokenUrl,
-        {
-          'Content-Type': 'application/json',
-          'User-Agent': ApiConstants.userAgent,
-        },
-        requestBody,
-      );
+    final (:statusCode, body: responseBody) = await _securePost(
+      ApiConstants.tokenUrl,
+      {
+        'Content-Type': 'application/json',
+        'User-Agent': ApiConstants.userAgent,
+      },
+      requestBody,
+    );
 
-      if (statusCode != 200) {
-        developer.log('Token refresh failed: $statusCode - $responseBody',
-            name: 'OAuthService', level: 1000);
-        throw Exception('Token refresh failed: $statusCode');
-      }
-
-      final json = jsonDecode(responseBody);
-      if (json is! Map<String, dynamic>) {
-        throw const FormatException('Refresh response is not a JSON object');
-      }
-
-      final accessToken = json['access_token'];
-      if (accessToken is! String || accessToken.isEmpty) {
-        throw const FormatException('Missing or invalid access_token');
-      }
-
-      final refreshToken = json['refresh_token'];
-      final expiresInRaw = json['expires_in'];
-      final expiresIn = expiresInRaw is int ? expiresInRaw : 28800;
-
-      final creds = _credentials!.copyWith(
-        accessToken: accessToken,
-        refreshToken:
-            refreshToken is String ? refreshToken : _credentials!.refreshToken,
-        expiresAt: DateTime.now()
-            .add(Duration(seconds: expiresIn))
-            .millisecondsSinceEpoch,
-      );
-
-      await saveCredentials(creds);
-    } catch (e, stackTrace) {
-      developer.log('Token refresh error',
-          name: 'OAuthService', error: e, stackTrace: stackTrace, level: 1000);
-      rethrow;
+    if (statusCode != 200) {
+      developer.log('Token refresh failed: $statusCode - $responseBody',
+          name: 'OAuthService', level: 1000);
+      throw Exception('Token refresh failed: $statusCode');
     }
+
+    final json = jsonDecode(responseBody);
+    if (json is! Map<String, dynamic>) {
+      throw const FormatException('Refresh response is not a JSON object');
+    }
+
+    final accessToken = json['access_token'];
+    if (accessToken is! String || accessToken.isEmpty) {
+      throw const FormatException('Missing or invalid access_token');
+    }
+
+    final refreshToken = json['refresh_token'];
+    final expiresInRaw = json['expires_in'];
+    final expiresIn = expiresInRaw is int ? expiresInRaw : 28800;
+
+    final creds = _credentials!.copyWith(
+      accessToken: accessToken,
+      refreshToken: refreshToken is String ? refreshToken : _credentials!.refreshToken,
+      expiresAt: DateTime.now()
+          .add(Duration(seconds: expiresIn))
+          .millisecondsSinceEpoch,
+    );
+
+    await saveCredentials(creds);
   }
 
   /// Logout and clear credentials.
   Future<void> logout() async {
     try {
-      await _secureStorage.delete(key: _secureStorageKey);
+      final file = File(_credentialsPath);
+      if (await file.exists()) {
+        final content = await file.readAsString();
+        final json = jsonDecode(content) as Map<String, dynamic>;
+        json.remove(CredentialsConstants.credentialsKey);
+        if (json.isEmpty) {
+          await file.delete();
+        } else {
+          await file.writeAsString(jsonEncode(json));
+        }
+      }
     } catch (e, stackTrace) {
-      developer.log('Failed to delete credentials from secure storage',
+      developer.log('Failed to delete credentials',
           name: 'OAuthService', error: e, stackTrace: stackTrace, level: 900);
     }
-
-    _credentials = Credentials.empty;
     _credentials = null;
   }
 }

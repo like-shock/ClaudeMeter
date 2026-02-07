@@ -13,9 +13,10 @@ class UsageBar extends StatelessWidget {
   });
 
   Color _getBarColor(double utilization) {
-    if (utilization >= 0.9) return const Color(0xFFF38BA8); // Red
-    if (utilization >= 0.7) return const Color(0xFFFAB387); // Orange
-    if (utilization >= 0.5) return const Color(0xFFF9E2AF); // Yellow
+    // utilization is 0-100 (percentage)
+    if (utilization >= 90) return const Color(0xFFF38BA8); // Red
+    if (utilization >= 70) return const Color(0xFFFAB387); // Orange
+    if (utilization >= 50) return const Color(0xFFF9E2AF); // Yellow
     return const Color(0xFFA6E3A1); // Green
   }
 
@@ -89,7 +90,8 @@ class UsageBar extends StatelessWidget {
             ),
             child: FractionallySizedBox(
               alignment: Alignment.centerLeft,
-              widthFactor: tier.utilization.clamp(0.0, 1.0),
+              // utilization is 0-100, convert to 0-1 for widthFactor
+              widthFactor: (tier.utilization / 100).clamp(0.0, 1.0),
               child: Container(
                 decoration: BoxDecoration(
                   color: barColor,

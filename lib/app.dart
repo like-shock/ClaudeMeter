@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 import 'models/usage_data.dart';
@@ -33,6 +34,8 @@ class _ClaudeMonitorAppState extends State<ClaudeMonitorApp> with WindowListener
   bool _showSettings = false;
   bool _isLoading = false;
   String? _loginError;
+  String? _usageError;
+  String? _userEmail;
   UsageData? _usageData;
   Timer? _refreshTimer;
 
@@ -53,11 +56,19 @@ class _ClaudeMonitorAppState extends State<ClaudeMonitorApp> with WindowListener
     await _config.loadConfig();
 
     if (_oauth.hasCredentials) {
+      await _fetchProfile();
       await _refreshUsage();
     }
 
     _startAutoRefresh();
     setState(() {});
+  }
+
+  Future<void> _fetchProfile() async {
+    final email = await _usage.fetchUserEmail();
+    if (mounted) {
+      setState(() => _userEmail = email);
+    }
   }
 
   void _setupTrayCallbacks() {
@@ -95,16 +106,36 @@ class _ClaudeMonitorAppState extends State<ClaudeMonitorApp> with WindowListener
   Future<void> _refreshUsage() async {
     if (!_oauth.hasCredentials) return;
 
+    if (!mounted) return;
     setState(() => _isLoading = true);
 
     try {
       final data = await _usage.fetchUsage();
+      if (!mounted) return;
       setState(() {
         _usageData = data;
+        _usageError = null;
         _isLoading = false;
       });
     } catch (e) {
-      setState(() => _isLoading = false);
+      debugPrint('Usage refresh error: $e');
+      if (!mounted) return;
+      
+      final errorMsg = e.toString();
+      String? displayError;
+      
+      if (errorMsg.contains('auth_expired') || errorMsg.contains('401')) {
+        displayError = '인증이 만료되었습니다. 다시 로그인해주세요.';
+      } else if (errorMsg.contains('403')) {
+        displayError = '접근 권한이 없습니다. 다시 로그인해주세요.';
+      } else if (errorMsg.contains('API error')) {
+        displayError = 'API 오류가 발생했습니다.';
+      }
+      
+      setState(() {
+        _usageError = displayError;
+        _isLoading = false;
+      });
     }
   }
 
@@ -118,6 +149,7 @@ class _ClaudeMonitorAppState extends State<ClaudeMonitorApp> with WindowListener
     try {
       final success = await _oauth.login();
       if (success) {
+        await _fetchProfile();
         await _refreshUsage();
         _startAutoRefresh();
         setState(() => _isLoading = false);
@@ -171,6 +203,8 @@ class _ClaudeMonitorAppState extends State<ClaudeMonitorApp> with WindowListener
                 isLoggedIn: _oauth.hasCredentials,
                 isLoading: _isLoading,
                 loginError: _loginError,
+                usageError: _usageError,
+                userEmail: _userEmail,
                 usageData: _usageData,
                 config: _config.config,
                 onLogin: _handleLogin,
