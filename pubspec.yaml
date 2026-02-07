@@ -41,9 +41,6 @@ dependencies:
   # Window management
   window_manager: ^0.4.3
 
-  # HTTP client
-  http: ^1.2.2
-
   # Open URLs (OAuth)
   url_launcher: ^6.3.1
 
@@ -56,9 +53,8 @@ dependencies:
   # Crypto for PKCE
   crypto: ^3.0.6
 
-  # Local HTTP server for OAuth callback
-  shelf: ^1.4.2
-  shelf_router: ^1.1.4
+  # Secure credential storage (macOS Keychain)
+  flutter_secure_storage: ^9.2.4
 
 dev_dependencies:
   flutter_test:
@@ -84,6 +80,8 @@ flutter:
 
   assets:
     - assets/icon.png
+    - assets/tray_iconTemplate.png
+    - assets/tray_iconTemplate@2x.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

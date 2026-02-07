@@ -7,9 +7,12 @@ class ApiConstants {
   static const String profileUrl =
       'https://api.anthropic.com/api/oauth/profile';
 
+  /// Official Anthropic OAuth redirect - displays code to user
+  static const String redirectUri =
+      'https://console.anthropic.com/oauth/code/callback';
+
   static const String clientId = '9d1c250a-e61b-44d9-88ed-5944d1962f5e';
-  static const String oauthScopes =
-      'org:create_api_key user:profile user:inference';
+  static const String oauthScopes = 'org:create_api_key user:profile user:inference';
   static const String userAgent = 'claude-code/2.0.32';
 
   static const Duration apiTimeout = Duration(seconds: 15);

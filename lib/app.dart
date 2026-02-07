@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:window_manager/window_manager.dart';
 import 'models/usage_data.dart';
 import 'models/config.dart';
 import 'services/oauth_service.dart';
 import 'services/usage_service.dart';
 import 'services/config_service.dart';
+import 'services/tray_service.dart';
 import 'screens/home_screen.dart';
 import 'screens/settings_screen.dart';
 
@@ -13,19 +15,21 @@ class ClaudeMonitorApp extends StatefulWidget {
   final OAuthService oauthService;
   final UsageService usageService;
   final ConfigService configService;
+  final TrayService trayService;
 
   const ClaudeMonitorApp({
     super.key,
     required this.oauthService,
     required this.usageService,
     required this.configService,
+    required this.trayService,
   });
 
   @override
   State<ClaudeMonitorApp> createState() => _ClaudeMonitorAppState();
 }
 
-class _ClaudeMonitorAppState extends State<ClaudeMonitorApp> {
+class _ClaudeMonitorAppState extends State<ClaudeMonitorApp> with WindowListener {
   bool _showSettings = false;
   bool _isLoading = false;
   String? _loginError;
@@ -39,7 +43,9 @@ class _ClaudeMonitorAppState extends State<ClaudeMonitorApp> {
   @override
   void initState() {
     super.initState();
+    windowManager.addListener(this);
     _init();
+    _setupTrayCallbacks();
   }
 
   Future<void> _init() async {
@@ -54,8 +60,24 @@ class _ClaudeMonitorAppState extends State<ClaudeMonitorApp> {
     setState(() {});
   }
 
+  void _setupTrayCallbacks() {
+    widget.trayService.onRefresh = () => _refreshUsage();
+    widget.trayService.onSettings = () {
+      setState(() => _showSettings = true);
+      windowManager.show();
+      windowManager.focus();
+    };
+  }
+
+  @override
+  void onWindowClose() async {
+    // Hide instead of close to keep tray app running
+    await windowManager.hide();
+  }
+
   @override
   void dispose() {
+    windowManager.removeListener(this);
     _refreshTimer?.cancel();
     super.dispose();
   }
@@ -86,25 +108,48 @@ class _ClaudeMonitorAppState extends State<ClaudeMonitorApp> {
     }
   }
 
-  Future<void> _handleLogin() async {
+  /// Start OAuth login - opens browser.
+  Future<void> _handleStartLogin() async {
+    setState(() {
+      _loginError = null;
+    });
+
+    try {
+      await _oauth.startLogin();
+      // Browser is open, user will copy code
+    } catch (e) {
+      setState(() => _loginError = '브라우저를 열 수 없습니다.');
+    }
+  }
+
+  /// Submit authorization code.
+  Future<bool> _handleSubmitCode(String code) async {
     setState(() {
       _isLoading = true;
       _loginError = null;
     });
 
     try {
-      final success = await _oauth.startLogin();
+      final success = await _oauth.exchangeCodeForTokens(code);
       if (success) {
         await _refreshUsage();
         _startAutoRefresh();
+        setState(() => _isLoading = false);
+        return true;
       } else {
-        setState(() => _loginError = '로그인이 취소되었습니다');
+        setState(() {
+          _loginError = '인증에 실패했습니다.';
+          _isLoading = false;
+        });
+        return false;
       }
     } catch (e) {
-      setState(() => _loginError = '로그인 중 오류 발생');
+      setState(() {
+        _loginError = '로그인 중 오류 발생: $e';
+        _isLoading = false;
+      });
+      return false;
     }
-
-    setState(() => _isLoading = false);
   }
 
   Future<void> _handleLogout() async {
@@ -130,7 +175,7 @@ class _ClaudeMonitorAppState extends State<ClaudeMonitorApp> {
         scaffoldBackgroundColor: const Color(0xFF1E1E2E),
       ),
       home: Scaffold(
-        backgroundColor: const Color(0xFF1E1E2E).withOpacity(0.95),
+        backgroundColor: const Color(0xFF1E1E2E).withValues(alpha: 0.95),
         body: _showSettings
             ? SettingsScreen(
                 config: _config.config,
@@ -145,7 +190,8 @@ class _ClaudeMonitorAppState extends State<ClaudeMonitorApp> {
                 loginError: _loginError,
                 usageData: _usageData,
                 config: _config.config,
-                onLogin: _handleLogin,
+                onStartLogin: _handleStartLogin,
+                onSubmitCode: _handleSubmitCode,
                 onRefresh: _refreshUsage,
                 onSettings: () => setState(() => _showSettings = true),
               ),

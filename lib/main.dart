@@ -13,18 +13,20 @@ void main() async {
   // Initialize window manager
   await windowManager.ensureInitialized();
 
-  // Configure window - simpler options
+  // Configure window
   const windowOptions = WindowOptions(
     size: Size(320, 420),
     minimumSize: Size(280, 350),
     maximumSize: Size(400, 500),
     center: true,
-    backgroundColor: Color(0xFF1E1E2E), // Catppuccin base color
-    skipTaskbar: false, // Show in dock for now (debugging)
+    backgroundColor: Color(0xFF1E1E2E),
+    skipTaskbar: true, // Tray app: hide from dock/taskbar
     titleBarStyle: TitleBarStyle.hidden,
   );
 
   await windowManager.waitUntilReadyToShow(windowOptions, () async {
+    // Prevent macOS from terminating app when window is closed/hidden
+    await windowManager.setPreventClose(true);
     await windowManager.show();
     await windowManager.focus();
   });
@@ -35,18 +37,31 @@ void main() async {
   final configService = ConfigService();
   final trayService = TrayService();
 
-  // Initialize tray (with error handling)
+  // Initialize tray
   try {
     await trayService.init();
 
-    // Setup tray callbacks
+    // Setup tray callbacks with safe window toggle
     trayService.onToggle = () async {
-      if (await windowManager.isVisible()) {
-        await windowManager.hide();
-      } else {
-        await windowManager.show();
-        await windowManager.focus();
+      try {
+        final isVisible = await windowManager.isVisible();
+        if (isVisible) {
+          await windowManager.hide();
+        } else {
+          await windowManager.show();
+          await windowManager.focus();
+        }
+      } catch (e) {
+        debugPrint('Window toggle error: $e');
       }
+    };
+
+    trayService.onRefresh = () {
+      debugPrint('Refresh clicked');
+    };
+
+    trayService.onSettings = () {
+      debugPrint('Settings clicked');
     };
 
     trayService.onQuit = () {
@@ -60,5 +75,6 @@ void main() async {
     oauthService: oauthService,
     usageService: usageService,
     configService: configService,
+    trayService: trayService,
   ));
 }

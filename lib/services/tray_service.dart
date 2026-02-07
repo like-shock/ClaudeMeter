@@ -1,5 +1,7 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:tray_manager/tray_manager.dart';
 
 /// Callbacks for tray menu actions.
@@ -12,9 +14,17 @@ class TrayService with TrayListener {
   TrayCallback? onSettings;
   TrayCallback? onQuit;
 
+  String? _iconPath;
+
   /// Initialize the system tray.
   Future<void> init() async {
-    await trayManager.setIcon(_getIconPath());
+    // Extract icon from assets to temp directory
+    _iconPath = await _extractTrayIcon();
+
+    if (_iconPath != null) {
+      await trayManager.setIcon(_iconPath!);
+    }
+
     await trayManager.setToolTip('Claude Monitor');
 
     final menu = Menu(
@@ -44,14 +54,29 @@ class TrayService with TrayListener {
     trayManager.addListener(this);
   }
 
-  String _getIconPath() {
-    if (Platform.isMacOS) {
-      // For macOS, use the icon in the app bundle Resources
-      final executable = Platform.resolvedExecutable;
-      final appBundle = executable.substring(0, executable.lastIndexOf('/MacOS/'));
-      return '$appBundle/Resources/icon.png';
+  /// Extract tray icon from Flutter assets to a file path.
+  Future<String?> _extractTrayIcon() async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+
+      if (Platform.isMacOS) {
+        // macOS: use monochrome template image (Template suffix for auto dark/light)
+        final byteData = await rootBundle.load('assets/tray_iconTemplate.png');
+        final bytes = byteData.buffer.asUint8List();
+        final iconFile = File('${tempDir.path}/tray_iconTemplate.png');
+        await iconFile.writeAsBytes(bytes);
+        return iconFile.path;
+      } else {
+        final byteData = await rootBundle.load('assets/icon.png');
+        final bytes = byteData.buffer.asUint8List();
+        final iconFile = File('${tempDir.path}/tray.png');
+        await iconFile.writeAsBytes(bytes);
+        return iconFile.path;
+      }
+    } catch (e) {
+      debugPrint('Failed to extract tray icon: $e');
+      return null;
     }
-    return 'assets/icon.ico';
   }
 
   /// Dispose the tray service.
