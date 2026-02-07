@@ -79,11 +79,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: const BoxDecoration(
-        color: Color(0xFFFFFFFF),
-        border: Border(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.8),
+        border: const Border(
           bottom: BorderSide(
-            color: Color(0xFFE5E5E5),
+            color: Color(0xFFD1D1D6),
             width: 0.5,
           ),
         ),
@@ -232,11 +232,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildFooter() {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: const BoxDecoration(
-        color: Color(0xFFFFFFFF),
-        border: Border(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.8),
+        border: const Border(
           top: BorderSide(
-            color: Color(0xFFE5E5E5),
+            color: Color(0xFFD1D1D6),
             width: 0.5,
           ),
         ),

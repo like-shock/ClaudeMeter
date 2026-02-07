@@ -52,10 +52,10 @@ class UsageBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFFFF),
+        color: Colors.white.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: const Color(0xFFE5E5E5),
+          color: const Color(0xFFD1D1D6),
           width: 0.5,
         ),
       ),
