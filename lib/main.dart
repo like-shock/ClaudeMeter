@@ -1,11 +1,30 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 import 'app.dart';
 import 'services/oauth_service.dart';
 import 'services/usage_service.dart';
 import 'services/config_service.dart';
 import 'services/tray_service.dart';
+
+/// Position window directly below tray icon
+Future<void> _positionWindowBelowTray() async {
+  try {
+    final trayBounds = await trayManager.getBounds();
+    if (trayBounds != null) {
+      final windowSize = await windowManager.getSize();
+      
+      // Center window horizontally below tray icon
+      final x = trayBounds.center.dx - (windowSize.width / 2);
+      final y = trayBounds.bottom + 4; // 4px gap
+      
+      await windowManager.setPosition(Offset(x, y));
+    }
+  } catch (e) {
+    debugPrint('Position error: $e');
+  }
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,20 +45,7 @@ void main() async {
   await windowManager.waitUntilReadyToShow(windowOptions, () async {
     // Prevent macOS from terminating app when window is closed/hidden
     await windowManager.setPreventClose(true);
-    
-    // Position window at top-right (near menu bar)
-    final screen = await windowManager.getSize();
-    final screenSize = WidgetsBinding.instance.platformDispatcher.views.first.physicalSize;
-    final devicePixelRatio = WidgetsBinding.instance.platformDispatcher.views.first.devicePixelRatio;
-    final logicalWidth = screenSize.width / devicePixelRatio;
-    
-    await windowManager.setPosition(Offset(
-      logicalWidth - screen.width - 10,
-      30, // Below menu bar
-    ));
-    
-    await windowManager.show();
-    await windowManager.focus();
+    // Don't show initially - wait for tray click
   });
 
   // Initialize services
@@ -59,6 +65,8 @@ void main() async {
         if (isVisible) {
           await windowManager.hide();
         } else {
+          // Position window below tray icon
+          await _positionWindowBelowTray();
           await windowManager.show();
           await windowManager.focus();
         }
@@ -78,8 +86,16 @@ void main() async {
     trayService.onQuit = () {
       exit(0);
     };
+    
+    // Show window below tray after tray is ready
+    await Future.delayed(const Duration(milliseconds: 100));
+    await _positionWindowBelowTray();
+    await windowManager.show();
+    await windowManager.focus();
   } catch (e) {
     debugPrint('Tray init failed: $e');
+    // Fallback: show window anyway
+    await windowManager.show();
   }
 
   runApp(ClaudeMonitorApp(
