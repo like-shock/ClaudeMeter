@@ -178,11 +178,11 @@ class _ClaudeMonitorAppState extends State<ClaudeMonitorApp> {
     return MaterialApp(
       title: 'Claude Monitor',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF1E1E2E),
+      theme: ThemeData.light().copyWith(
+        scaffoldBackgroundColor: const Color(0xFFFFFFFF),
       ),
       home: Scaffold(
-        backgroundColor: const Color(0xFF1E1E2E),
+        backgroundColor: const Color(0xFFF5F5F7),
         body: _showSettings
             ? SettingsScreen(
                 config: _config.config,

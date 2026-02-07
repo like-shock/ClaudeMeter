@@ -14,10 +14,10 @@ class UsageBar extends StatelessWidget {
 
   Color _getBarColor(double utilization) {
     // utilization is 0-100 (percentage)
-    if (utilization >= 90) return const Color(0xFFF38BA8); // Red
-    if (utilization >= 70) return const Color(0xFFFAB387); // Orange
-    if (utilization >= 50) return const Color(0xFFF9E2AF); // Yellow
-    return const Color(0xFFA6E3A1); // Green
+    if (utilization >= 90) return const Color(0xFFFF3B30); // Red
+    if (utilization >= 70) return const Color(0xFFFF9500); // Orange
+    if (utilization >= 50) return const Color(0xFFFFCC00); // Yellow
+    return const Color(0xFF34C759); // Green
   }
 
   String _formatResetTime(DateTime? resetsAt) {
@@ -52,8 +52,12 @@ class UsageBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF313244).withValues(alpha: 0.6),
+        color: const Color(0xFFFFFFFF),
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: const Color(0xFFE5E5E5),
+          width: 0.5,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -67,7 +71,7 @@ class UsageBar extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFFCDD6F4),
+                  color: Color(0xFF1D1D1F),
                 ),
               ),
               Text(
@@ -85,7 +89,7 @@ class UsageBar extends StatelessWidget {
           Container(
             height: 8,
             decoration: BoxDecoration(
-              color: const Color(0xFF45475A).withValues(alpha: 0.8),
+              color: const Color(0xFFE5E5EA),
               borderRadius: BorderRadius.circular(4),
             ),
             child: FractionallySizedBox(
@@ -109,7 +113,7 @@ class UsageBar extends StatelessWidget {
                 resetInfo,
                 style: const TextStyle(
                   fontSize: 11,
-                  color: Color(0xFF6C7086),
+                  color: Color(0xFF8E8E93),
                 ),
               ),
             ),

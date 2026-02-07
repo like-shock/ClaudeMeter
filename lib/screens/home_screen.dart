@@ -56,11 +56,11 @@ class HomeScreen extends StatelessWidget {
   Widget _buildTitleBar() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF313244).withValues(alpha: 0.8),
-        border: const Border(
+      decoration: const BoxDecoration(
+        color: Color(0xFFFFFFFF),
+        border: Border(
           bottom: BorderSide(
-            color: Color(0xFF45475A),
+            color: Color(0xFFE5E5E5),
             width: 0.5,
           ),
         ),
@@ -72,7 +72,7 @@ class HomeScreen extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: Color(0xFFCDD6F4),
+              color: Color(0xFF1D1D1F),
             ),
           ),
           const Spacer(),
@@ -90,7 +90,7 @@ class HomeScreen extends StatelessWidget {
           _buildIconButton(
             icon: Icons.power_settings_new,
             onTap: onQuit,
-            color: const Color(0xFFF38BA8),
+            color: const Color(0xFFFF3B30),
           ),
         ],
       ),
@@ -116,15 +116,15 @@ class HomeScreen extends StatelessWidget {
                 height: 16,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: Color(0xFF89B4FA),
+                  color: Color(0xFF007AFF),
                 ),
               )
             : Icon(
                 icon,
                 size: 16,
                 color: onTap == null
-                    ? const Color(0xFF6C7086)
-                    : (color ?? const Color(0xFFA6ADC8)),
+                    ? const Color(0xFFC7C7CC)
+                    : (color ?? const Color(0xFF8E8E93)),
               ),
       ),
     );
@@ -143,17 +143,17 @@ class HomeScreen extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFF38BA8).withValues(alpha: 0.2),
+                color: const Color(0xFFFF3B30).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: const Color(0xFFF38BA8).withValues(alpha: 0.5),
+                  color: const Color(0xFFFF3B30).withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
                 children: [
                   const Icon(
                     Icons.warning_amber_rounded,
-                    color: Color(0xFFF38BA8),
+                    color: Color(0xFFFF3B30),
                     size: 20,
                   ),
                   const SizedBox(width: 8),
@@ -162,7 +162,7 @@ class HomeScreen extends StatelessWidget {
                       usageError!,
                       style: const TextStyle(
                         fontSize: 12,
-                        color: Color(0xFFF38BA8),
+                        color: Color(0xFFFF3B30),
                       ),
                     ),
                   ),
@@ -205,14 +205,14 @@ class HomeScreen extends StatelessWidget {
                     const Icon(
                       Icons.account_circle_outlined,
                       size: 14,
-                      color: Color(0xFF6C7086),
+                      color: Color(0xFF8E8E93),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       userEmail!,
                       style: const TextStyle(
                         fontSize: 11,
-                        color: Color(0xFF6C7086),
+                        color: Color(0xFF8E8E93),
                       ),
                     ),
                     if (subscriptionType != null) ...[
@@ -223,7 +223,7 @@ class HomeScreen extends StatelessWidget {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF89B4FA).withValues(alpha: 0.2),
+                          color: const Color(0xFF007AFF).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
@@ -231,7 +231,7 @@ class HomeScreen extends StatelessWidget {
                           style: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF89B4FA),
+                            color: Color(0xFF007AFF),
                           ),
                         ),
                       ),
@@ -243,7 +243,7 @@ class HomeScreen extends StatelessWidget {
               '마지막 업데이트: ${_formatTime(data.fetchedAt)}',
               style: const TextStyle(
                 fontSize: 11,
-                color: Color(0xFF6C7086),
+                color: Color(0xFF8E8E93),
               ),
             ),
           ],

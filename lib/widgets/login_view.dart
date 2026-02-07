@@ -27,7 +27,7 @@ class LoginView extends StatelessWidget {
                   : 'Claude AI 사용량을 확인하려면\n로그인이 필요합니다.',
               textAlign: TextAlign.center,
               style: const TextStyle(
-                color: Color(0xFFA6ADC8),
+                color: Color(0xFF8E8E93),
                 fontSize: 14,
                 height: 1.6,
               ),
@@ -39,16 +39,14 @@ class LoginView extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF89B4FA), Color(0xFFB4BEFE)],
-                  ),
+                  color: const Color(0xFF007AFF),
                   borderRadius: BorderRadius.circular(8),
                   boxShadow: isLoading
                       ? null
                       : [
                           BoxShadow(
                             color:
-                                const Color(0xFF89B4FA).withValues(alpha: 0.3),
+                                const Color(0xFF007AFF).withValues(alpha: 0.3),
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),
@@ -63,7 +61,7 @@ class LoginView extends StatelessWidget {
                         height: 14,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Color(0xFF1E1E2E),
+                          color: Colors.white,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -71,7 +69,7 @@ class LoginView extends StatelessWidget {
                     Text(
                       isLoading ? '인증 대기 중...' : 'Claude 로그인',
                       style: const TextStyle(
-                        color: Color(0xFF1E1E2E),
+                        color: Colors.white,
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),
@@ -86,7 +84,7 @@ class LoginView extends StatelessWidget {
                 error!,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  color: Color(0xFFF38BA8),
+                  color: Color(0xFFFF3B30),
                   fontSize: 12,
                 ),
               ),

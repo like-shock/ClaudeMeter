@@ -62,7 +62,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const Text(
                       '로그인되지 않음',
                       style: TextStyle(
-                        color: Color(0xFF6C7086),
+                        color: Color(0xFF8E8E93),
                         fontSize: 14,
                       ),
                     ),
@@ -80,9 +80,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: const BoxDecoration(
+        color: Color(0xFFFFFFFF),
         border: Border(
           bottom: BorderSide(
-            color: Color(0xFF45475A),
+            color: Color(0xFFE5E5E5),
             width: 0.5,
           ),
         ),
@@ -94,7 +95,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: Color(0xFFCDD6F4),
+              color: Color(0xFF1D1D1F),
             ),
           ),
           const Spacer(),
@@ -103,7 +104,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: const Icon(
               Icons.close,
               size: 18,
-              color: Color(0xFFA6ADC8),
+              color: Color(0xFF8E8E93),
             ),
           ),
         ],
@@ -120,7 +121,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           style: const TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: Color(0xFFA6ADC8),
+            color: Color(0xFF8E8E93),
             letterSpacing: 0.5,
           ),
         ),
@@ -141,11 +142,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               width: 18,
               height: 18,
               decoration: BoxDecoration(
-                color: value ? const Color(0xFF89B4FA) : Colors.transparent,
+                color: value ? const Color(0xFF007AFF) : Colors.transparent,
                 border: Border.all(
                   color: value
-                      ? const Color(0xFF89B4FA)
-                      : const Color(0xFF6C7086),
+                      ? const Color(0xFF007AFF)
+                      : const Color(0xFFC7C7CC),
                 ),
                 borderRadius: BorderRadius.circular(4),
               ),
@@ -153,7 +154,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ? const Icon(
                       Icons.check,
                       size: 14,
-                      color: Color(0xFF1E1E2E),
+                      color: Colors.white,
                     )
                   : null,
             ),
@@ -162,7 +163,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               label,
               style: const TextStyle(
                 fontSize: 14,
-                color: Color(0xFFCDD6F4),
+                color: Color(0xFF1D1D1F),
               ),
             ),
           ],
@@ -177,10 +178,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Expanded(
           child: SliderTheme(
             data: SliderThemeData(
-              activeTrackColor: const Color(0xFF89B4FA),
-              inactiveTrackColor: const Color(0xFF45475A),
-              thumbColor: const Color(0xFF89B4FA),
-              overlayColor: const Color(0xFF89B4FA).withValues(alpha: 0.2),
+              activeTrackColor: const Color(0xFF007AFF),
+              inactiveTrackColor: const Color(0xFFE5E5EA),
+              thumbColor: const Color(0xFF007AFF),
+              overlayColor: const Color(0xFF007AFF).withValues(alpha: 0.2),
             ),
             child: Slider(
               value: _localConfig.refreshIntervalSeconds.toDouble(),
@@ -196,7 +197,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           '${_localConfig.refreshIntervalSeconds}초',
           style: const TextStyle(
             fontSize: 14,
-            color: Color(0xFFCDD6F4),
+            color: Color(0xFF1D1D1F),
           ),
         ),
       ],
@@ -210,9 +211,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: const Color(0xFFF38BA8).withValues(alpha: 0.2),
+          color: const Color(0xFFFF3B30).withValues(alpha: 0.1),
           border: Border.all(
-            color: const Color(0xFFF38BA8).withValues(alpha: 0.3),
+            color: const Color(0xFFFF3B30).withValues(alpha: 0.3),
           ),
           borderRadius: BorderRadius.circular(6),
         ),
@@ -220,7 +221,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           '로그아웃',
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: Color(0xFFF38BA8),
+            color: Color(0xFFFF3B30),
             fontSize: 14,
           ),
         ),
@@ -232,9 +233,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
+        color: Color(0xFFFFFFFF),
         border: Border(
           top: BorderSide(
-            color: Color(0xFF45475A),
+            color: Color(0xFFE5E5E5),
             width: 0.5,
           ),
         ),
@@ -247,14 +249,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF45475A).withValues(alpha: 0.5),
+                  color: const Color(0xFFE5E5EA),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: const Text(
                   '취소',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: Color(0xFFCDD6F4),
+                    color: Color(0xFF1D1D1F),
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
@@ -269,14 +271,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF89B4FA),
+                  color: const Color(0xFF007AFF),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: const Text(
                   '저장',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: Color(0xFF1E1E2E),
+                    color: Colors.white,
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
