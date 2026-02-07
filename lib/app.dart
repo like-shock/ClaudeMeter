@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'models/usage_data.dart';
 import 'models/config.dart';
 import 'services/oauth_service.dart';
@@ -175,37 +176,87 @@ class _ClaudeMonitorAppState extends State<ClaudeMonitorApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Claude Monitor',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData.light().copyWith(
-        scaffoldBackgroundColor: const Color(0xFFECECEC),
-      ),
-      home: Scaffold(
-        backgroundColor: const Color(0xFFECECEC),
-        body: _showSettings
-            ? SettingsScreen(
-                config: _config.config,
-                isLoggedIn: _oauth.hasCredentials,
-                onSave: _handleConfigSave,
-                onLogout: _handleLogout,
-                onClose: () => setState(() => _showSettings = false),
-              )
-            : HomeScreen(
-                isLoggedIn: _oauth.hasCredentials,
-                isLoading: _isLoading,
-                loginError: _loginError,
-                usageError: _usageError,
-                userEmail: _userEmail,
-                subscriptionType: _subscriptionType,
-                usageData: _usageData,
-                config: _config.config,
-                onLogin: _handleLogin,
-                onRefresh: _refreshUsage,
-                onSettings: () => setState(() => _showSettings = true),
-                onQuit: _handleQuit,
-              ),
+    return Shortcuts(
+      shortcuts: <ShortcutActivator, Intent>{
+        const SingleActivator(LogicalKeyboardKey.keyR, meta: true): const RefreshIntent(),
+        const SingleActivator(LogicalKeyboardKey.comma, meta: true): const SettingsIntent(),
+        const SingleActivator(LogicalKeyboardKey.keyQ, meta: true): const QuitIntent(),
+      },
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          RefreshIntent: CallbackAction<RefreshIntent>(
+            onInvoke: (_) {
+              debugPrint('Keyboard: Cmd+R pressed - Refresh');
+              if (_oauth.hasCredentials && !_isLoading) {
+                _refreshUsage();
+              }
+              return null;
+            },
+          ),
+          SettingsIntent: CallbackAction<SettingsIntent>(
+            onInvoke: (_) {
+              debugPrint('Keyboard: Cmd+, pressed - Settings');
+              setState(() => _showSettings = true);
+              return null;
+            },
+          ),
+          QuitIntent: CallbackAction<QuitIntent>(
+            onInvoke: (_) {
+              debugPrint('Keyboard: Cmd+Q pressed - Quit');
+              _handleQuit();
+              return null;
+            },
+          ),
+        },
+        child: Focus(
+          autofocus: true,
+          child: MaterialApp(
+            title: 'Claude Monitor',
+            debugShowCheckedModeBanner: false,
+            theme: ThemeData.light().copyWith(
+              scaffoldBackgroundColor: const Color(0xFFECECEC),
+            ),
+            home: Scaffold(
+              backgroundColor: const Color(0xFFECECEC),
+              body: _showSettings
+                  ? SettingsScreen(
+                      config: _config.config,
+                      isLoggedIn: _oauth.hasCredentials,
+                      onSave: _handleConfigSave,
+                      onLogout: _handleLogout,
+                      onClose: () => setState(() => _showSettings = false),
+                    )
+                  : HomeScreen(
+                      isLoggedIn: _oauth.hasCredentials,
+                      isLoading: _isLoading,
+                      loginError: _loginError,
+                      usageError: _usageError,
+                      userEmail: _userEmail,
+                      subscriptionType: _subscriptionType,
+                      usageData: _usageData,
+                      config: _config.config,
+                      onLogin: _handleLogin,
+                      onRefresh: _refreshUsage,
+                      onSettings: () => setState(() => _showSettings = true),
+                      onQuit: _handleQuit,
+                    ),
+            ),
+          ),
+        ),
       ),
     );
   }
+}
+
+// Intent classes for keyboard shortcuts
+class RefreshIntent extends Intent {
+  const RefreshIntent();
+}
+
+class SettingsIntent extends Intent {
+  const SettingsIntent();
+}
+
+class QuitIntent extends Intent {
+  const QuitIntent();
 }
