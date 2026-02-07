@@ -1,0 +1,184 @@
+# Claude Monitor for macOS - PRD (Product Requirements Document)
+
+## 1. 개요
+
+### 1.1 프로젝트명
+**Claude Monitor for macOS** (Flutter Edition)
+
+### 1.2 목표
+Windows용 ClaudeMonitor를 macOS 메뉴바 앱으로 재구현하여, Claude AI 사용량을 실시간으로 모니터링할 수 있는 네이티브 경험 제공
+
+### 1.3 기술 스택
+- **Framework**: Flutter 3.x (macOS)
+- **Language**: Dart
+- **System Tray**: `tray_manager` 패키지
+- **Window Management**: `window_manager` 패키지
+- **HTTP**: `http` / `dio` 패키지
+
+---
+
+## 2. 기능 요구사항
+
+### 2.1 핵심 기능
+
+#### 2.1.1 메뉴바 아이콘
+- macOS 상단 메뉴바에 아이콘 표시
+- 아이콘 클릭 시 팝업 윈도우로 사용량 표시
+- 우클릭 시 컨텍스트 메뉴
+
+#### 2.1.2 사용량 표시
+- **5시간 세션 사용량** (five_hour)
+- **주간 전체 사용량** (seven_day)
+- **Sonnet 주간 사용량** (seven_day_sonnet)
+- 프로그레스 바 + 퍼센트 수치
+- 리셋 시간 표시
+
+#### 2.1.3 OAuth 인증
+- Claude OAuth 2.0 + PKCE 로그인
+- 로컬 콜백 서버 (localhost:random_port/callback)
+- 토큰 자동 갱신 (refresh_token)
+- 자격 증명 파일: `~/.claude/.credentials.json`
+
+#### 2.1.4 설정
+- 갱신 주기 (5~300초, 기본 30초)
+- 표시 항목 선택 (5시간/주간/Sonnet)
+- 로그아웃
+
+### 2.2 UI/UX
+
+#### 2.2.1 팝업 윈도우
+- 메뉴바 아이콘 클릭 시 아이콘 아래에 팝업 표시
+- 깔끔한 다크 테마 UI (Catppuccin Mocha)
+- 각 사용량 항목별 프로그레스 바
+- 새로고침 버튼
+- 설정 버튼 (기어 아이콘)
+- 닫기: 팝업 외부 클릭 시 자동 숨기기
+
+#### 2.2.2 메뉴바 컨텍스트 메뉴 (우클릭)
+- 새로고침
+- 설정
+- 로그아웃
+- 종료
+
+---
+
+## 3. 기술 사양
+
+### 3.1 API 엔드포인트
+
+| 용도 | URL |
+|------|-----|
+| 토큰 발급/갱신 | `https://console.anthropic.com/v1/oauth/token` |
+| 사용량 조회 | `https://api.anthropic.com/api/oauth/usage` |
+| 인증 시작 | `https://claude.ai/oauth/authorize` |
+| 프로필 조회 | `https://api.anthropic.com/api/oauth/profile` |
+
+### 3.2 OAuth 파라미터
+- **Client ID**: `9d1c250a-e61b-44d9-88ed-5944d1962f5e`
+- **Scopes**: `org:create_api_key user:profile user:inference`
+- **Grant Type**: `authorization_code`, `refresh_token`
+- **PKCE**: S256 code_challenge
+
+### 3.3 사용량 응답 형식
+```json
+{
+  "five_hour": {
+    "utilization": 0.45,
+    "resets_at": "2026-02-07T10:00:00Z"
+  },
+  "seven_day": {
+    "utilization": 0.32,
+    "resets_at": "2026-02-10T00:00:00Z"
+  },
+  "seven_day_sonnet": {
+    "utilization": 0.15,
+    "resets_at": "2026-02-10T00:00:00Z"
+  }
+}
+```
+
+### 3.4 자격 증명 저장
+- 경로: `~/.claude/.credentials.json`
+- 키: `claudeAiOauth`
+- 필드: `accessToken`, `refreshToken`, `expiresAt`
+
+---
+
+## 4. 프로젝트 구조
+
+```
+claude_monitor_flutter/
+├── lib/
+│   ├── main.dart               # 앱 엔트리포인트
+│   ├── app.dart                # 앱 위젯
+│   ├── models/
+│   │   ├── usage_data.dart     # 사용량 데이터 모델
+│   │   ├── credentials.dart    # 자격 증명 모델
+│   │   └── config.dart         # 설정 모델
+│   ├── services/
+│   │   ├── oauth_service.dart  # OAuth 인증
+│   │   ├── usage_service.dart  # 사용량 API
+│   │   ├── config_service.dart # 설정 관리
+│   │   └── tray_service.dart   # 시스템 트레이
+│   ├── screens/
+│   │   ├── home_screen.dart    # 메인 화면
+│   │   └── settings_screen.dart# 설정 화면
+│   ├── widgets/
+│   │   ├── usage_bar.dart      # 프로그레스 바
+│   │   └── login_view.dart     # 로그인 화면
+│   └── utils/
+│       ├── pkce.dart           # PKCE 헬퍼
+│       └── constants.dart      # 상수
+├── macos/
+│   └── Runner/
+│       └── MainFlutterWindow.swift
+├── pubspec.yaml
+└── docs/
+    ├── PRD.md
+    └── ROADMAP.md
+```
+
+---
+
+## 5. 의존성 패키지
+
+```yaml
+dependencies:
+  flutter:
+    sdk: flutter
+  tray_manager: ^0.2.0          # 메뉴바 아이콘
+  window_manager: ^0.4.0        # 윈도우 제어
+  http: ^1.2.0                  # HTTP 클라이언트
+  url_launcher: ^6.2.0          # OAuth 브라우저 열기
+  shared_preferences: ^2.2.0    # 설정 저장
+  path_provider: ^2.1.0         # 파일 경로
+  crypto: ^3.0.0                # PKCE SHA256
+  shelf: ^1.4.0                 # OAuth 콜백 서버
+```
+
+---
+
+## 6. 비기능 요구사항
+
+### 6.1 성능
+- 앱 시작 시간: < 1초
+- 메모리 사용량: < 100MB
+- API 호출 타임아웃: 15초
+
+### 6.2 호환성
+- macOS 11+ (Big Sur 이상)
+- Apple Silicon (ARM64) + Intel (x86_64)
+
+### 6.3 보안
+- OAuth 토큰은 로컬 파일에만 저장
+- PKCE로 인증 코드 보호
+- HTTPS 통신만 사용
+
+---
+
+## 7. 향후 확장 (Phase 2)
+
+- 알림: 사용량 임계치 도달 시 macOS 알림
+- 히스토리: 사용량 추이 그래프
+- 다크/라이트 테마 자동 전환
+- 키보드 단축키로 팝업 토글
