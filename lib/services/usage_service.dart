@@ -6,6 +6,14 @@ import '../models/usage_data.dart';
 import '../utils/constants.dart';
 import 'oauth_service.dart';
 
+/// User profile data
+class UserProfile {
+  final String? email;
+  final String? subscriptionType;
+  
+  UserProfile({this.email, this.subscriptionType});
+}
+
 /// Service for fetching Claude usage data.
 ///
 /// Uses dart:io HttpClient with badCertificateCallback for TLS verification,
@@ -30,7 +38,7 @@ class UsageService {
   }
 
   /// Fetch user profile from the API.
-  Future<String?> fetchUserEmail() async {
+  Future<UserProfile?> fetchUserProfile() async {
     final token = await _oauthService.getAccessToken();
     if (token == null) return null;
 
@@ -55,13 +63,31 @@ class UsageService {
       final json = jsonDecode(responseBody);
       if (json is! Map<String, dynamic>) return null;
       
-      // API returns account.email
+      // API returns account.email and organization.organization_type
       final account = json['account'];
+      final organization = json['organization'];
+      
+      String? email;
+      String? subType;
+      
       if (account is Map<String, dynamic>) {
-        return account['email'] as String? ?? 
-               account['display_name'] as String?;
+        email = account['email'] as String? ?? 
+                account['display_name'] as String?;
       }
-      return null;
+      
+      if (organization is Map<String, dynamic>) {
+        final orgType = organization['organization_type'] as String?;
+        // Convert to display name
+        subType = switch (orgType) {
+          'claude_max' => 'Max',
+          'claude_pro' => 'Pro',
+          'claude_team' => 'Team',
+          'claude_enterprise' => 'Enterprise',
+          _ => orgType,
+        };
+      }
+      
+      return UserProfile(email: email, subscriptionType: subType);
     } catch (e) {
       debugPrint('Profile fetch error: $e');
       return null;

@@ -13,13 +13,12 @@ void main() async {
   // Initialize window manager
   await windowManager.ensureInitialized();
 
-  // Configure window
+  // Configure window - popover style
   const windowOptions = WindowOptions(
-    size: Size(320, 420),
-    minimumSize: Size(280, 350),
+    size: Size(320, 380),
+    minimumSize: Size(280, 300),
     maximumSize: Size(400, 500),
-    center: true,
-    backgroundColor: Color(0xFF1E1E2E),
+    backgroundColor: Colors.transparent,
     skipTaskbar: true, // Tray app: hide from dock/taskbar
     titleBarStyle: TitleBarStyle.hidden,
   );
@@ -27,6 +26,18 @@ void main() async {
   await windowManager.waitUntilReadyToShow(windowOptions, () async {
     // Prevent macOS from terminating app when window is closed/hidden
     await windowManager.setPreventClose(true);
+    
+    // Position window at top-right (near menu bar)
+    final screen = await windowManager.getSize();
+    final screenSize = WidgetsBinding.instance.platformDispatcher.views.first.physicalSize;
+    final devicePixelRatio = WidgetsBinding.instance.platformDispatcher.views.first.devicePixelRatio;
+    final logicalWidth = screenSize.width / devicePixelRatio;
+    
+    await windowManager.setPosition(Offset(
+      logicalWidth - screen.width - 10,
+      30, // Below menu bar
+    ));
+    
     await windowManager.show();
     await windowManager.focus();
   });

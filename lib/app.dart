@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
@@ -36,6 +37,7 @@ class _ClaudeMonitorAppState extends State<ClaudeMonitorApp> with WindowListener
   String? _loginError;
   String? _usageError;
   String? _userEmail;
+  String? _subscriptionType;
   UsageData? _usageData;
   Timer? _refreshTimer;
 
@@ -65,9 +67,12 @@ class _ClaudeMonitorAppState extends State<ClaudeMonitorApp> with WindowListener
   }
 
   Future<void> _fetchProfile() async {
-    final email = await _usage.fetchUserEmail();
-    if (mounted) {
-      setState(() => _userEmail = email);
+    final profile = await _usage.fetchUserProfile();
+    if (mounted && profile != null) {
+      setState(() {
+        _userEmail = profile.email;
+        _subscriptionType = profile.subscriptionType;
+      });
     }
   }
 
@@ -175,6 +180,10 @@ class _ClaudeMonitorAppState extends State<ClaudeMonitorApp> with WindowListener
     });
   }
 
+  void _handleQuit() {
+    exit(0);
+  }
+
   Future<void> _handleConfigSave(AppConfig newConfig) async {
     await _config.saveConfig(newConfig);
     _startAutoRefresh();
@@ -189,9 +198,22 @@ class _ClaudeMonitorAppState extends State<ClaudeMonitorApp> with WindowListener
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: const Color(0xFF1E1E2E),
       ),
-      home: Scaffold(
-        backgroundColor: const Color(0xFF1E1E2E).withValues(alpha: 0.95),
-        body: _showSettings
+      home: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.3),
+              blurRadius: 20,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Scaffold(
+            backgroundColor: const Color(0xFF1E1E2E),
+            body: _showSettings
             ? SettingsScreen(
                 config: _config.config,
                 isLoggedIn: _oauth.hasCredentials,
@@ -205,12 +227,16 @@ class _ClaudeMonitorAppState extends State<ClaudeMonitorApp> with WindowListener
                 loginError: _loginError,
                 usageError: _usageError,
                 userEmail: _userEmail,
+                subscriptionType: _subscriptionType,
                 usageData: _usageData,
                 config: _config.config,
                 onLogin: _handleLogin,
                 onRefresh: _refreshUsage,
                 onSettings: () => setState(() => _showSettings = true),
+                onQuit: _handleQuit,
               ),
+          ),
+        ),
       ),
     );
   }

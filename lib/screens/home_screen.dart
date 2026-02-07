@@ -11,11 +11,13 @@ class HomeScreen extends StatelessWidget {
   final String? loginError;
   final String? usageError;
   final String? userEmail;
+  final String? subscriptionType;
   final UsageData? usageData;
   final AppConfig config;
   final VoidCallback onLogin;
   final VoidCallback onRefresh;
   final VoidCallback onSettings;
+  final VoidCallback onQuit;
 
   const HomeScreen({
     super.key,
@@ -24,11 +26,13 @@ class HomeScreen extends StatelessWidget {
     this.loginError,
     this.usageError,
     this.userEmail,
+    this.subscriptionType,
     this.usageData,
     required this.config,
     required this.onLogin,
     required this.onRefresh,
     required this.onSettings,
+    required this.onQuit,
   });
 
   @override
@@ -82,6 +86,12 @@ class HomeScreen extends StatelessWidget {
             icon: Icons.settings,
             onTap: onSettings,
           ),
+          const SizedBox(width: 8),
+          _buildIconButton(
+            icon: Icons.power_settings_new,
+            onTap: onQuit,
+            color: const Color(0xFFF38BA8),
+          ),
         ],
       ),
     );
@@ -91,6 +101,7 @@ class HomeScreen extends StatelessWidget {
     required IconData icon,
     VoidCallback? onTap,
     bool isLoading = false,
+    Color? color,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -113,7 +124,7 @@ class HomeScreen extends StatelessWidget {
                 size: 16,
                 color: onTap == null
                     ? const Color(0xFF6C7086)
-                    : const Color(0xFFA6ADC8),
+                    : (color ?? const Color(0xFFA6ADC8)),
               ),
       ),
     );
@@ -204,6 +215,27 @@ class HomeScreen extends StatelessWidget {
                         color: Color(0xFF6C7086),
                       ),
                     ),
+                    if (subscriptionType != null) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF89B4FA).withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          subscriptionType!,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF89B4FA),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
