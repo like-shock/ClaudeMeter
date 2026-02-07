@@ -58,6 +58,15 @@ class AppDelegate: FlutterAppDelegate {
     }
     
     override func applicationDidFinishLaunching(_ notification: Notification) {
+        // 중복 실행 방지
+        let bundleId = Bundle.main.bundleIdentifier ?? "com.example.claudeMonitorFlutter"
+        let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId)
+        if runningApps.count > 1 {
+            // 이미 실행 중인 인스턴스가 있으면 종료
+            NSApp.terminate(nil)
+            return
+        }
+        
         guard let window = mainFlutterWindow,
               let flutterViewController = window.contentViewController as? FlutterViewController else {
             return
