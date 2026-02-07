@@ -53,8 +53,7 @@ void main() {
           home: Scaffold(
             body: LoginView(
               isLoading: false,
-              onStartLogin: () async {},
-              onSubmitCode: (code) async => true,
+              onLogin: () {},
             ),
           ),
         ),
@@ -69,14 +68,13 @@ void main() {
           home: Scaffold(
             body: LoginView(
               isLoading: true,
-              onStartLogin: () async {},
-              onSubmitCode: (code) async => true,
+              onLogin: () {},
             ),
           ),
         ),
       );
 
-      expect(find.text('로그인 중...'), findsOneWidget);
+      expect(find.text('인증 대기 중...'), findsOneWidget);
     });
 
     testWidgets('displays error message', (WidgetTester tester) async {
@@ -86,8 +84,7 @@ void main() {
             body: LoginView(
               isLoading: false,
               error: '로그인 실패',
-              onStartLogin: () async {},
-              onSubmitCode: (code) async => true,
+              onLogin: () {},
             ),
           ),
         ),

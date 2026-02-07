@@ -108,47 +108,30 @@ class _ClaudeMonitorAppState extends State<ClaudeMonitorApp> with WindowListener
     }
   }
 
-  /// Start OAuth login - opens browser.
-  Future<void> _handleStartLogin() async {
-    setState(() {
-      _loginError = null;
-    });
-
-    try {
-      await _oauth.startLogin();
-      // Browser is open, user will copy code
-    } catch (e) {
-      setState(() => _loginError = '브라우저를 열 수 없습니다.');
-    }
-  }
-
-  /// Submit authorization code.
-  Future<bool> _handleSubmitCode(String code) async {
+  /// Start OAuth login with automatic callback.
+  Future<void> _handleLogin() async {
     setState(() {
       _isLoading = true;
       _loginError = null;
     });
 
     try {
-      final success = await _oauth.exchangeCodeForTokens(code);
+      final success = await _oauth.login();
       if (success) {
         await _refreshUsage();
         _startAutoRefresh();
         setState(() => _isLoading = false);
-        return true;
       } else {
         setState(() {
           _loginError = '인증에 실패했습니다.';
           _isLoading = false;
         });
-        return false;
       }
     } catch (e) {
       setState(() {
         _loginError = '로그인 중 오류 발생: $e';
         _isLoading = false;
       });
-      return false;
     }
   }
 
@@ -190,8 +173,7 @@ class _ClaudeMonitorAppState extends State<ClaudeMonitorApp> with WindowListener
                 loginError: _loginError,
                 usageData: _usageData,
                 config: _config.config,
-                onStartLogin: _handleStartLogin,
-                onSubmitCode: _handleSubmitCode,
+                onLogin: _handleLogin,
                 onRefresh: _refreshUsage,
                 onSettings: () => setState(() => _showSettings = true),
               ),

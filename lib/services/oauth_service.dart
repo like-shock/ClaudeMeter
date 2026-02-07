@@ -11,27 +11,19 @@ import '../utils/pkce.dart';
 
 /// OAuth service for Claude authentication.
 ///
-/// Uses Anthropic's official OAuth flow with code display page.
-/// User must copy the authorization code from the browser.
+/// Uses local HTTP callback server for automatic code exchange,
+/// matching the original ClaudeMonitor Python implementation.
 class OAuthService {
   Credentials? _credentials;
 
-  /// Secure storage key for credentials.
   static const String _secureStorageKey = 'claude_oauth_credentials';
 
-  /// Legacy file path for migration.
   static String get _legacyCredentialsPath {
     final home = Platform.environment['HOME'] ?? '.';
     return '$home/${CredentialsConstants.credentialsFile}';
   }
 
   final FlutterSecureStorage _secureStorage;
-
-  /// Pending PKCE verifier for token exchange.
-  String? _pendingVerifier;
-
-  /// Pending OAuth state for CSRF verification.
-  String? _pendingState;
 
   OAuthService({FlutterSecureStorage? secureStorage})
       : _secureStorage = secureStorage ??
@@ -42,10 +34,7 @@ class OAuthService {
               ),
             );
 
-  /// Whether the user has valid credentials.
   bool get hasCredentials => _credentials?.hasCredentials ?? false;
-
-  /// Get current credentials.
   Credentials? get credentials => _credentials;
 
   /// Load credentials from secure storage.
@@ -57,17 +46,10 @@ class OAuthService {
         _credentials = Credentials.fromJson(json);
         return;
       }
-
-      // Migration: check legacy plaintext file
       await _migrateFromLegacyFile();
     } catch (e, stackTrace) {
-      developer.log(
-        'Failed to load credentials',
-        name: 'OAuthService',
-        error: e,
-        stackTrace: stackTrace,
-        level: 900,
-      );
+      developer.log('Failed to load credentials',
+          name: 'OAuthService', error: e, stackTrace: stackTrace, level: 900);
       _credentials = null;
     }
   }
@@ -96,13 +78,11 @@ class OAuthService {
 
       _credentials = Credentials.fromJson(oauthData);
 
-      // Save to secure storage
       await _secureStorage.write(
         key: _secureStorageKey,
         value: jsonEncode(_credentials!.toJson()),
       );
 
-      // Remove legacy credentials from plaintext file
       json.remove(CredentialsConstants.credentialsKey);
       if (json.isEmpty) {
         await file.delete();
@@ -110,19 +90,11 @@ class OAuthService {
         await file.writeAsString(jsonEncode(json));
       }
 
-      developer.log(
-        'Migrated credentials from plaintext file to secure storage',
-        name: 'OAuthService',
-        level: 800,
-      );
+      developer.log('Migrated credentials from plaintext file to secure storage',
+          name: 'OAuthService', level: 800);
     } catch (e, stackTrace) {
-      developer.log(
-        'Failed to migrate legacy credentials',
-        name: 'OAuthService',
-        error: e,
-        stackTrace: stackTrace,
-        level: 900,
-      );
+      developer.log('Failed to migrate legacy credentials',
+          name: 'OAuthService', error: e, stackTrace: stackTrace, level: 900);
       _credentials = null;
     }
   }
@@ -136,32 +108,22 @@ class OAuthService {
       );
       _credentials = creds;
     } catch (e, stackTrace) {
-      developer.log(
-        'Failed to save credentials to secure storage',
-        name: 'OAuthService',
-        error: e,
-        stackTrace: stackTrace,
-        level: 1000,
-      );
+      developer.log('Failed to save credentials to secure storage',
+          name: 'OAuthService', error: e, stackTrace: stackTrace, level: 1000);
       rethrow;
     }
   }
 
-  /// Create a secure HttpClient with TLS verification.
   HttpClient _createSecureHttpClient() {
     final client = HttpClient();
     client.badCertificateCallback = (cert, host, port) {
-      developer.log(
-        'Rejected bad certificate for $host:$port',
-        name: 'OAuthService.TLS',
-        level: 1000,
-      );
+      developer.log('Rejected bad certificate for $host:$port',
+          name: 'OAuthService.TLS', level: 1000);
       return false;
     };
     return client;
   }
 
-  /// Make a secure POST request to Anthropic API.
   Future<({int statusCode, String body})> _securePost(
     String url,
     Map<String, String> headers,
@@ -188,88 +150,157 @@ class OAuthService {
     }
   }
 
-  /// Start OAuth login flow - opens browser with authorization URL.
-  /// Returns the URL that was opened.
-  /// User must copy the code from the browser and call [exchangeCodeForTokens].
-  Future<String> startLogin() async {
-    final verifier = PKCE.generateVerifier();
-    final challenge = PKCE.generateChallenge(verifier);
-    final state = PKCE.generateState();
-
-    // Store for later token exchange
-    _pendingVerifier = verifier;
-    _pendingState = state;
-
-    // Build authorization URL with code=true for code display page
-    final params = {
-      'code': 'true',
-      'client_id': ApiConstants.clientId,
-      'response_type': 'code',
-      'redirect_uri': ApiConstants.redirectUri,
-      'scope': ApiConstants.oauthScopes,
-      'code_challenge': challenge,
-      'code_challenge_method': 'S256',
-      'state': state,
-    };
-
-    final authUrl = Uri.parse(ApiConstants.authorizeUrl)
-        .replace(queryParameters: params);
-
-    debugPrint('OAuth: Opening authorization URL');
-
-    // Open browser
-    if (!await launchUrl(authUrl, mode: LaunchMode.externalApplication)) {
-      throw Exception('Could not open browser');
-    }
-
-    return authUrl.toString();
-  }
-
-  /// Exchange authorization code for tokens.
-  /// Call this after user copies code from browser.
-  Future<bool> exchangeCodeForTokens(String code) async {
-    if (_pendingVerifier == null || _pendingState == null) {
-      debugPrint('OAuth: No pending login session');
-      return false;
-    }
+  /// Full OAuth login flow with local callback server.
+  /// Opens browser, waits for callback, exchanges code for tokens.
+  Future<bool> login() async {
+    HttpServer? server;
 
     try {
-      // Clean up the code in case it has URL fragments
-      final cleanedCode = code.trim().split('#')[0].split('&')[0];
+      // Generate PKCE parameters
+      final verifier = PKCE.generateVerifier();
+      final challenge = PKCE.generateChallenge(verifier);
+      final state = PKCE.generateState();
 
+      // Start local callback server on random port
+      server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      final port = server.port;
+      final redirectUri = 'http://localhost:$port/callback';
+
+      debugPrint('OAuth: Callback server started on port $port');
+
+      // Build authorization URL
+      final params = {
+        'client_id': ApiConstants.clientId,
+        'response_type': 'code',
+        'redirect_uri': redirectUri,
+        'scope': ApiConstants.oauthScopes,
+        'code_challenge': challenge,
+        'code_challenge_method': 'S256',
+        'state': state,
+      };
+
+      final authUrl =
+          Uri.parse(ApiConstants.authorizeUrl).replace(queryParameters: params);
+
+      // Open browser
+      if (!await launchUrl(authUrl, mode: LaunchMode.externalApplication)) {
+        throw Exception('Could not open browser');
+      }
+
+      // Wait for callback (120 second timeout)
+      String? authCode;
+      final completer = Completer<void>();
+      final timeout = Timer(const Duration(seconds: 120), () {
+        if (!completer.isCompleted) {
+          debugPrint('OAuth: Callback timeout');
+          completer.complete();
+        }
+      });
+
+      server.listen((request) {
+        final uri = request.uri;
+
+        // Ignore non-callback requests (favicon, etc.)
+        if (uri.path != '/callback') {
+          request.response
+            ..statusCode = HttpStatus.notFound
+            ..close();
+          return;
+        }
+
+        final code = uri.queryParameters['code'];
+        final returnedState = uri.queryParameters['state'];
+        final error = uri.queryParameters['error'];
+
+        if (error != null) {
+          _sendErrorPage(request.response, error);
+        } else if (code == null || returnedState == null) {
+          _sendErrorPage(request.response, '인증 코드가 없습니다.');
+        } else if (returnedState != state) {
+          _sendErrorPage(request.response, 'CSRF 검증 실패');
+        } else {
+          authCode = code;
+          _sendSuccessPage(request.response);
+        }
+
+        if (!completer.isCompleted) completer.complete();
+      });
+
+      await completer.future;
+      timeout.cancel();
+      await server.close();
+      server = null;
+
+      if (authCode == null) {
+        return false;
+      }
+
+      // Exchange code for tokens
       debugPrint('OAuth: Exchanging code for tokens...');
-      await _exchangeCode(cleanedCode, _pendingVerifier!, _pendingState!);
+      await _exchangeCode(authCode!, verifier, state, redirectUri);
       debugPrint('OAuth: Token exchange successful!');
       return true;
     } catch (e, stackTrace) {
-      debugPrint('OAuth: Token exchange failed: $e');
-      developer.log(
-        'Token exchange failed',
-        name: 'OAuthService',
-        error: e,
-        stackTrace: stackTrace,
-        level: 1000,
-      );
+      debugPrint('OAuth: Login failed: $e');
+      developer.log('Login failed',
+          name: 'OAuthService', error: e, stackTrace: stackTrace, level: 1000);
       return false;
     } finally {
-      _pendingVerifier = null;
-      _pendingState = null;
+      try {
+        await server?.close();
+      } catch (_) {}
     }
+  }
+
+  void _sendSuccessPage(HttpResponse response) {
+    response
+      ..statusCode = HttpStatus.ok
+      ..headers.contentType = ContentType.html
+      ..write('''
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>인증 완료</title></head>
+<body style="background:#1e1e2e;color:#cdd6f4;font-family:system-ui;display:flex;justify-content:center;align-items:center;height:100vh;margin:0">
+<div style="text-align:center">
+<h1 style="color:#a6e3a1">✓ 인증 완료!</h1>
+<p>이 창을 닫고 앱으로 돌아가세요.</p>
+</div>
+</body>
+</html>
+''')
+      ..close();
+  }
+
+  void _sendErrorPage(HttpResponse response, String error) {
+    response
+      ..statusCode = HttpStatus.badRequest
+      ..headers.contentType = ContentType.html
+      ..write('''
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>인증 실패</title></head>
+<body style="background:#1e1e2e;color:#cdd6f4;font-family:system-ui;display:flex;justify-content:center;align-items:center;height:100vh;margin:0">
+<div style="text-align:center">
+<h1 style="color:#f38ba8">✗ 인증 실패</h1>
+<p>$error</p>
+</div>
+</body>
+</html>
+''')
+      ..close();
   }
 
   /// Exchange authorization code for tokens.
   Future<void> _exchangeCode(
-      String code, String verifier, String state) async {
+      String code, String verifier, String state, String redirectUri) async {
     final requestBody = jsonEncode({
       'grant_type': 'authorization_code',
       'client_id': ApiConstants.clientId,
       'code': code,
-      'redirect_uri': ApiConstants.redirectUri,
+      'redirect_uri': redirectUri,
       'code_verifier': verifier,
       'state': state,
     });
-
-    debugPrint('OAuth: Token URL: ${ApiConstants.tokenUrl}');
 
     final (:statusCode, body: responseBody) = await _securePost(
       ApiConstants.tokenUrl,
@@ -283,23 +314,17 @@ class OAuthService {
     debugPrint('OAuth: Token response status: $statusCode');
     if (statusCode != 200) {
       debugPrint('OAuth: Token exchange failed: $responseBody');
-      developer.log(
-        'Token exchange failed: $statusCode - $responseBody',
-        name: 'OAuthService',
-        level: 1000,
-      );
       throw Exception('Token exchange failed: $statusCode - $responseBody');
     }
 
     final json = jsonDecode(responseBody);
-
     if (json is! Map<String, dynamic>) {
       throw const FormatException('Token response is not a JSON object');
     }
 
     final accessToken = json['access_token'];
     if (accessToken is! String || accessToken.isEmpty) {
-      throw const FormatException('Missing or invalid access_token in response');
+      throw const FormatException('Missing or invalid access_token');
     }
 
     final refreshToken = json['refresh_token'];
@@ -353,24 +378,19 @@ class OAuthService {
       );
 
       if (statusCode != 200) {
-        developer.log(
-          'Token refresh failed: $statusCode - $responseBody',
-          name: 'OAuthService',
-          level: 1000,
-        );
+        developer.log('Token refresh failed: $statusCode - $responseBody',
+            name: 'OAuthService', level: 1000);
         throw Exception('Token refresh failed: $statusCode');
       }
 
       final json = jsonDecode(responseBody);
-
       if (json is! Map<String, dynamic>) {
         throw const FormatException('Refresh response is not a JSON object');
       }
 
       final accessToken = json['access_token'];
       if (accessToken is! String || accessToken.isEmpty) {
-        throw const FormatException(
-            'Missing or invalid access_token in refresh response');
+        throw const FormatException('Missing or invalid access_token');
       }
 
       final refreshToken = json['refresh_token'];
@@ -388,13 +408,8 @@ class OAuthService {
 
       await saveCredentials(creds);
     } catch (e, stackTrace) {
-      developer.log(
-        'Token refresh error',
-        name: 'OAuthService',
-        error: e,
-        stackTrace: stackTrace,
-        level: 1000,
-      );
+      developer.log('Token refresh error',
+          name: 'OAuthService', error: e, stackTrace: stackTrace, level: 1000);
       rethrow;
     }
   }
@@ -404,18 +419,11 @@ class OAuthService {
     try {
       await _secureStorage.delete(key: _secureStorageKey);
     } catch (e, stackTrace) {
-      developer.log(
-        'Failed to delete credentials from secure storage',
-        name: 'OAuthService',
-        error: e,
-        stackTrace: stackTrace,
-        level: 900,
-      );
+      developer.log('Failed to delete credentials from secure storage',
+          name: 'OAuthService', error: e, stackTrace: stackTrace, level: 900);
     }
 
     _credentials = Credentials.empty;
     _credentials = null;
-    _pendingVerifier = null;
-    _pendingState = null;
   }
 }

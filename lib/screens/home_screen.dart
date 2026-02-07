@@ -11,8 +11,7 @@ class HomeScreen extends StatelessWidget {
   final String? loginError;
   final UsageData? usageData;
   final AppConfig config;
-  final Future<void> Function() onStartLogin;
-  final Future<bool> Function(String code) onSubmitCode;
+  final VoidCallback onLogin;
   final VoidCallback onRefresh;
   final VoidCallback onSettings;
 
@@ -23,8 +22,7 @@ class HomeScreen extends StatelessWidget {
     this.loginError,
     this.usageData,
     required this.config,
-    required this.onStartLogin,
-    required this.onSubmitCode,
+    required this.onLogin,
     required this.onRefresh,
     required this.onSettings,
   });
@@ -40,8 +38,7 @@ class HomeScreen extends StatelessWidget {
               : LoginView(
                   isLoading: isLoading,
                   error: loginError,
-                  onStartLogin: onStartLogin,
-                  onSubmitCode: onSubmitCode,
+                  onLogin: onLogin,
                 ),
         ),
       ],
