@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:window_manager/window_manager.dart';
 import 'models/usage_data.dart';
 import 'models/config.dart';
 import 'services/oauth_service.dart';
@@ -31,7 +30,7 @@ class ClaudeMonitorApp extends StatefulWidget {
   State<ClaudeMonitorApp> createState() => _ClaudeMonitorAppState();
 }
 
-class _ClaudeMonitorAppState extends State<ClaudeMonitorApp> with WindowListener {
+class _ClaudeMonitorAppState extends State<ClaudeMonitorApp> {
   bool _showSettings = false;
   bool _isLoading = false;
   String? _loginError;
@@ -48,9 +47,7 @@ class _ClaudeMonitorAppState extends State<ClaudeMonitorApp> with WindowListener
   @override
   void initState() {
     super.initState();
-    windowManager.addListener(this);
     _init();
-    _setupTrayCallbacks();
   }
 
   Future<void> _init() async {
@@ -76,24 +73,8 @@ class _ClaudeMonitorAppState extends State<ClaudeMonitorApp> with WindowListener
     }
   }
 
-  void _setupTrayCallbacks() {
-    widget.trayService.onRefresh = () => _refreshUsage();
-    widget.trayService.onSettings = () {
-      setState(() => _showSettings = true);
-      windowManager.show();
-      windowManager.focus();
-    };
-  }
-
-  @override
-  void onWindowClose() async {
-    // Hide instead of close to keep tray app running
-    await windowManager.hide();
-  }
-
   @override
   void dispose() {
-    windowManager.removeListener(this);
     _refreshTimer?.cancel();
     super.dispose();
   }
@@ -176,6 +157,8 @@ class _ClaudeMonitorAppState extends State<ClaudeMonitorApp> with WindowListener
     await _oauth.logout();
     setState(() {
       _usageData = null;
+      _userEmail = null;
+      _subscriptionType = null;
       _showSettings = false;
     });
   }
@@ -198,22 +181,9 @@ class _ClaudeMonitorAppState extends State<ClaudeMonitorApp> with WindowListener
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: const Color(0xFF1E1E2E),
       ),
-      home: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 20,
-              spreadRadius: 2,
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Scaffold(
-            backgroundColor: const Color(0xFF1E1E2E),
-            body: _showSettings
+      home: Scaffold(
+        backgroundColor: const Color(0xFF1E1E2E),
+        body: _showSettings
             ? SettingsScreen(
                 config: _config.config,
                 isLoggedIn: _oauth.hasCredentials,
@@ -235,8 +205,6 @@ class _ClaudeMonitorAppState extends State<ClaudeMonitorApp> with WindowListener
                 onSettings: () => setState(() => _showSettings = true),
                 onQuit: _handleQuit,
               ),
-          ),
-        ),
       ),
     );
   }
