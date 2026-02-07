@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:tray_manager/tray_manager.dart';
 import 'app.dart';
 import 'services/oauth_service.dart';
 import 'services/usage_service.dart';
@@ -14,20 +13,18 @@ void main() async {
   // Initialize window manager
   await windowManager.ensureInitialized();
 
-  // Configure window
+  // Configure window - simpler options
   const windowOptions = WindowOptions(
     size: Size(320, 420),
     minimumSize: Size(280, 350),
     maximumSize: Size(400, 500),
     center: true,
-    backgroundColor: Colors.transparent,
-    skipTaskbar: true, // Hide from dock
+    backgroundColor: Color(0xFF1E1E2E), // Catppuccin base color
+    skipTaskbar: false, // Show in dock for now (debugging)
     titleBarStyle: TitleBarStyle.hidden,
-    windowButtonVisibility: false,
   );
 
   await windowManager.waitUntilReadyToShow(windowOptions, () async {
-    await windowManager.setAsFrameless();
     await windowManager.show();
     await windowManager.focus();
   });
@@ -38,26 +35,26 @@ void main() async {
   final configService = ConfigService();
   final trayService = TrayService();
 
-  // Initialize tray
-  await trayService.init();
+  // Initialize tray (with error handling)
+  try {
+    await trayService.init();
 
-  // Setup tray callbacks
-  trayService.onToggle = () async {
-    if (await windowManager.isVisible()) {
-      await windowManager.hide();
-    } else {
-      await windowManager.show();
-      await windowManager.focus();
-    }
-  };
+    // Setup tray callbacks
+    trayService.onToggle = () async {
+      if (await windowManager.isVisible()) {
+        await windowManager.hide();
+      } else {
+        await windowManager.show();
+        await windowManager.focus();
+      }
+    };
 
-  trayService.onRefresh = () {
-    // Will be handled by app state
-  };
-
-  trayService.onQuit = () {
-    exit(0);
-  };
+    trayService.onQuit = () {
+      exit(0);
+    };
+  } catch (e) {
+    debugPrint('Tray init failed: $e');
+  }
 
   runApp(ClaudeMonitorApp(
     oauthService: oauthService,

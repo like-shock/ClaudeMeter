@@ -45,10 +45,11 @@ class TrayService with TrayListener {
   }
 
   String _getIconPath() {
-    // Use a default icon for now
-    // TODO: Add proper icon asset
     if (Platform.isMacOS) {
-      return 'assets/icon.png';
+      // For macOS, use the icon in the app bundle Resources
+      final executable = Platform.resolvedExecutable;
+      final appBundle = executable.substring(0, executable.lastIndexOf('/MacOS/'));
+      return '$appBundle/Resources/icon.png';
     }
     return 'assets/icon.ico';
   }
