@@ -13,7 +13,8 @@ Windows용 ClaudeMonitor를 macOS 메뉴바 앱으로 재구현하여, Claude AI
 - **Language**: Dart
 - **System Tray**: `tray_manager` 패키지
 - **Window Management**: `window_manager` 패키지
-- **HTTP**: `http` / `dio` 패키지
+- **HTTP**: `dart:io` HttpClient (per-request, badCertificateCallback 적용)
+- **암호화**: `crypto` (SHA-256) + `encrypt` (AES-256-CBC)
 
 ---
 
@@ -48,8 +49,9 @@ Windows용 ClaudeMonitor를 macOS 메뉴바 앱으로 재구현하여, Claude AI
 
 #### 2.2.1 팝업 윈도우
 - 메뉴바 아이콘 클릭 시 아이콘 아래에 팝업 표시
-- 깔끔한 다크 테마 UI (Catppuccin Mocha)
-- 각 사용량 항목별 프로그레스 바
+- macOS 네이티브 라이트 테마 (NSVisualEffectView, .menu material)
+- Borderless NSPanel (280x400), 둥근 모서리 10px
+- 각 사용량 항목별 색상 프로그레스 바 + 티어별 아이콘
 - 새로고침 버튼
 - 설정 버튼 (기어 아이콘)
 - 닫기: 팝업 외부 클릭 시 자동 숨기기
@@ -98,9 +100,12 @@ Windows용 ClaudeMonitor를 macOS 메뉴바 앱으로 재구현하여, Claude AI
 ```
 
 ### 3.4 자격 증명 저장
-- 경로: `~/.claude/.credentials.json`
+- 경로: `~/.claude/.credentials.json` (권한 600)
 - 키: `claudeAiOauth`
-- 필드: `accessToken`, `refreshToken`, `expiresAt`
+- **암호화**: AES-256-CBC (매 저장 시 랜덤 IV)
+- **키 유도**: `SHA-256(hostname + ":" + username + ":" + salt)` → 32바이트 AES 키
+- 저장 포맷: `{ "claudeAiOauth": { "iv": "base64...", "data": "AES-256-CBC encrypted base64..." } }`
+- 레거시 평문 포맷(`accessToken`, `refreshToken`, `expiresAt`) 자동 감지 → 암호화 마이그레이션
 
 ---
 
@@ -116,7 +121,7 @@ claude_monitor_flutter/
 │   │   ├── credentials.dart    # 자격 증명 모델
 │   │   └── config.dart         # 설정 모델
 │   ├── services/
-│   │   ├── oauth_service.dart  # OAuth 인증
+│   │   ├── oauth_service.dart  # OAuth 인증, AES-256 암호화 저장
 │   │   ├── usage_service.dart  # 사용량 API
 │   │   ├── config_service.dart # 설정 관리
 │   │   └── tray_service.dart   # 시스템 트레이
@@ -128,7 +133,7 @@ claude_monitor_flutter/
 │   │   └── login_view.dart     # 로그인 화면
 │   └── utils/
 │       ├── pkce.dart           # PKCE 헬퍼
-│       └── constants.dart      # 상수
+│       └── constants.dart      # 상수, 암호화 salt
 ├── macos/
 │   └── Runner/
 │       └── MainFlutterWindow.swift
@@ -146,14 +151,14 @@ claude_monitor_flutter/
 dependencies:
   flutter:
     sdk: flutter
-  tray_manager: ^0.2.0          # 메뉴바 아이콘
-  window_manager: ^0.4.0        # 윈도우 제어
-  http: ^1.2.0                  # HTTP 클라이언트
-  url_launcher: ^6.2.0          # OAuth 브라우저 열기
-  shared_preferences: ^2.2.0    # 설정 저장
-  path_provider: ^2.1.0         # 파일 경로
-  crypto: ^3.0.0                # PKCE SHA256
-  shelf: ^1.4.0                 # OAuth 콜백 서버
+  tray_manager: ^0.2.3          # 메뉴바 아이콘
+  window_manager: ^0.4.3        # 윈도우 제어
+  url_launcher: ^6.3.1          # OAuth 브라우저 열기
+  shared_preferences: ^2.3.3    # 설정 저장
+  path_provider: ^2.1.5         # 파일 경로
+  crypto: ^3.0.6                # PKCE SHA256 + 암호화 키 유도
+  encrypt: ^5.0.3               # AES-256-CBC 자격증명 암호화
+  flutter_secure_storage: ^9.2.4 # (미사용, 향후 제거 예정)
 ```
 
 ---
@@ -170,9 +175,12 @@ dependencies:
 - Apple Silicon (ARM64) + Intel (x86_64)
 
 ### 6.3 보안
-- OAuth 토큰은 로컬 파일에만 저장
+- OAuth 토큰은 AES-256-CBC 암호화 후 로컬 파일에 저장 (권한 600)
+- 머신 고유값(hostname + username) 기반 키 유도 (사용자 입력 불필요)
 - PKCE로 인증 코드 보호
 - HTTPS 통신만 사용
+- Per-request HttpClient + badCertificateCallback 거부
+- 레거시 평문 자격증명 자동 암호화 마이그레이션
 
 ---
 
@@ -181,4 +189,4 @@ dependencies:
 - 알림: 사용량 임계치 도달 시 macOS 알림
 - 히스토리: 사용량 추이 그래프
 - 다크/라이트 테마 자동 전환
-- 키보드 단축키로 팝업 토글
+- `flutter_secure_storage` 제거 (미사용 의존성 정리)
