@@ -281,6 +281,7 @@ class OAuthService {
   }
 
   void _sendErrorPage(HttpResponse response, String error) {
+    final safeError = _escapeHtml(error);
     response
       ..statusCode = HttpStatus.badRequest
       ..headers.contentType = ContentType.html
@@ -291,12 +292,21 @@ class OAuthService {
 <body style="background:#1e1e2e;color:#cdd6f4;font-family:system-ui;display:flex;justify-content:center;align-items:center;height:100vh;margin:0">
 <div style="text-align:center">
 <h1 style="color:#f38ba8">✗ 인증 실패</h1>
-<p>$error</p>
+<p>$safeError</p>
 </div>
 </body>
 </html>
 ''')
       ..close();
+  }
+
+  static String _escapeHtml(String input) {
+    return input
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#x27;');
   }
 
   /// Exchange authorization code for tokens.
