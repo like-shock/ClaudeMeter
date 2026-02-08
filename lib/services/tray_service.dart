@@ -21,7 +21,7 @@ class TrayService with TrayListener {
         isTemplate: true,
       );
     } catch (e) {
-      debugPrint('Tray setIcon failed: $e');
+      if (kDebugMode) debugPrint('Tray setIcon failed: $e');
     }
 
     await trayManager.setToolTip('Claude Monitor');

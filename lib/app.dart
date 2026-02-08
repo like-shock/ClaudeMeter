@@ -104,7 +104,7 @@ class _ClaudeMonitorAppState extends State<ClaudeMonitorApp> {
         _isLoading = false;
       });
     } catch (e) {
-      debugPrint('Usage refresh error: $e');
+      if (kDebugMode) debugPrint('Usage refresh error: $e');
       if (!mounted) return;
       
       final errorMsg = e.toString();

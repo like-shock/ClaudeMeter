@@ -54,11 +54,9 @@ class UsageService {
       final responseBody = await response.transform(utf8.decoder).join();
 
       if (response.statusCode != 200) {
-        debugPrint('Profile API error: ${response.statusCode}');
+        if (kDebugMode) debugPrint('Profile API error: ${response.statusCode}');
         return null;
       }
-
-      debugPrint('Profile API response: $responseBody');
       
       final json = jsonDecode(responseBody);
       if (json is! Map<String, dynamic>) return null;
@@ -89,7 +87,8 @@ class UsageService {
       
       return UserProfile(email: email, subscriptionType: subType);
     } catch (e) {
-      debugPrint('Profile fetch error: $e');
+      developer.log('Profile fetch failed',
+          name: 'UsageService', error: e, level: 900);
       return null;
     } finally {
       client.close();
@@ -129,8 +128,6 @@ class UsageService {
         throw Exception('API error: ${response.statusCode}');
       }
 
-      debugPrint('Usage API response: $responseBody');
-      
       final json = jsonDecode(responseBody);
       if (json is! Map<String, dynamic>) {
         throw const FormatException('Usage response is not a JSON object');

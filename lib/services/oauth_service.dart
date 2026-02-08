@@ -65,13 +65,13 @@ class OAuthService {
         final decrypted = encrypter.decrypt64(oauthData['data'] as String, iv: iv);
         final credJson = jsonDecode(decrypted) as Map<String, dynamic>;
         _credentials = Credentials.fromJson(credJson);
-        debugPrint('OAuth: Encrypted credentials loaded');
+        if (kDebugMode) debugPrint('OAuth: Encrypted credentials loaded');
       } else {
         // Legacy plaintext format — migrate to encrypted
         _credentials = Credentials.fromJson(oauthData);
-        debugPrint('OAuth: Legacy plaintext credentials detected, migrating...');
+        if (kDebugMode) debugPrint('OAuth: Legacy plaintext detected, migrating...');
         await saveCredentials(_credentials!);
-        debugPrint('OAuth: Migration to encrypted format complete');
+        if (kDebugMode) debugPrint('OAuth: Migration to encrypted format complete');
       }
     } catch (e, stackTrace) {
       developer.log('Failed to load credentials',
@@ -114,7 +114,7 @@ class OAuthService {
       await Process.run('chmod', ['600', file.path]);
 
       _credentials = creds;
-      debugPrint('OAuth: Encrypted credentials saved');
+      if (kDebugMode) debugPrint('OAuth: Encrypted credentials saved');
     } catch (e, stackTrace) {
       developer.log('Failed to save credentials',
           name: 'OAuthService', error: e, stackTrace: stackTrace, level: 1000);
@@ -175,7 +175,7 @@ class OAuthService {
       final port = server.port;
       final redirectUri = 'http://localhost:$port/callback';
 
-      debugPrint('OAuth: Callback server started on port $port');
+      if (kDebugMode) debugPrint('OAuth: Callback server started on port $port');
 
       // Build authorization URL
       final params = {
@@ -201,7 +201,7 @@ class OAuthService {
       final completer = Completer<void>();
       final timeout = Timer(const Duration(seconds: 120), () {
         if (!completer.isCompleted) {
-          debugPrint('OAuth: Callback timeout');
+          if (kDebugMode) debugPrint('OAuth: Callback timeout');
           completer.complete();
         }
       });
@@ -245,12 +245,11 @@ class OAuthService {
       }
 
       // Exchange code for tokens
-      debugPrint('OAuth: Exchanging code for tokens...');
+      if (kDebugMode) debugPrint('OAuth: Exchanging code for tokens...');
       await _exchangeCode(authCode!, verifier, state, redirectUri);
-      debugPrint('OAuth: Login successful!');
+      if (kDebugMode) debugPrint('OAuth: Login successful');
       return true;
     } catch (e, stackTrace) {
-      debugPrint('OAuth: Login failed: $e');
       developer.log('Login failed',
           name: 'OAuthService', error: e, stackTrace: stackTrace, level: 1000);
       return false;
@@ -330,10 +329,10 @@ class OAuthService {
       requestBody,
     );
 
-    debugPrint('OAuth: Token response status: $statusCode');
     if (statusCode != 200) {
-      debugPrint('OAuth: Token exchange failed: $responseBody');
-      throw Exception('Token exchange failed: $statusCode - $responseBody');
+      developer.log('Token exchange failed: $statusCode',
+          name: 'OAuthService', level: 1000);
+      throw Exception('Token exchange failed: $statusCode');
     }
 
     final json = jsonDecode(responseBody);
@@ -396,7 +395,7 @@ class OAuthService {
     );
 
     if (statusCode != 200) {
-      developer.log('Token refresh failed: $statusCode - $responseBody',
+      developer.log('Token refresh failed: $statusCode',
           name: 'OAuthService', level: 1000);
       throw Exception('Token refresh failed: $statusCode');
     }
