@@ -174,6 +174,7 @@ class HomeScreen extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 12),
               child: UsageBar(
                 label: '5시간 세션',
+                icon: Icons.timer_outlined,
                 tier: data.fiveHour,
               ),
             ),
@@ -182,6 +183,7 @@ class HomeScreen extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 12),
               child: UsageBar(
                 label: '주간 전체',
+                icon: Icons.calendar_today_outlined,
                 tier: data.sevenDay,
               ),
             ),
@@ -190,6 +192,7 @@ class HomeScreen extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 12),
               child: UsageBar(
                 label: 'Sonnet 주간',
+                icon: Icons.auto_awesome_outlined,
                 tier: data.sevenDaySonnet,
               ),
             ),

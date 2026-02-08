@@ -19,6 +19,7 @@ void main() {
           home: Scaffold(
             body: UsageBar(
               label: '5시간 세션',
+              icon: Icons.timer_outlined,
               tier: tier,
             ),
           ),
@@ -38,6 +39,7 @@ void main() {
           home: Scaffold(
             body: UsageBar(
               label: 'Test',
+              icon: Icons.timer_outlined,
               tier: tier,
             ),
           ),

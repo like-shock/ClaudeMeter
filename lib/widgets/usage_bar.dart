@@ -4,11 +4,13 @@ import '../models/usage_data.dart';
 /// A progress bar widget for displaying usage.
 class UsageBar extends StatelessWidget {
   final String label;
+  final IconData icon;
   final UsageTier tier;
 
   const UsageBar({
     super.key,
     required this.label,
+    required this.icon,
     required this.tier,
   });
 
@@ -66,13 +68,19 @@ class UsageBar extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF1D1D1F),
-                ),
+              Row(
+                children: [
+                  Icon(icon, size: 14, color: const Color(0xFF636366)),
+                  const SizedBox(width: 5),
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF1D1D1F),
+                    ),
+                  ),
+                ],
               ),
               Text(
                 '$percentage%',
