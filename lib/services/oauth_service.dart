@@ -109,10 +109,14 @@ class OAuthService {
 
       // Ensure directory exists
       await file.parent.create(recursive: true);
-      await file.writeAsString(jsonEncode(existing));
 
-      // Set file permissions to 600 (owner read/write only)
+      // Set permissions to 600 BEFORE writing content.
+      // Create empty file first if it doesn't exist, then chmod, then write.
+      if (!await file.exists()) {
+        await file.create();
+      }
       await Process.run('chmod', ['600', file.path]);
+      await file.writeAsString(jsonEncode(existing));
 
       _credentials = creds;
       if (kDebugMode) debugPrint('OAuth: Encrypted credentials saved');
