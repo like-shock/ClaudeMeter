@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
+import 'dart:ffi' as ffi;
 import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
@@ -33,6 +34,33 @@ class OAuthService {
     final salt = CredentialsConstants.encryptionSalt;
     final keyBytes = sha256.convert(utf8.encode('$hostname:$username:$salt')).bytes;
     return encrypt.Key(Uint8List.fromList(keyBytes));
+  }
+
+  /// POSIX chmod via dart:ffi — no external process dependency.
+  static void _chmod(String path, int mode) {
+    final lib = ffi.DynamicLibrary.process();
+    final chmodFn = lib.lookupFunction<
+        ffi.Int32 Function(ffi.Pointer<ffi.Void>, ffi.Uint16),
+        int Function(ffi.Pointer<ffi.Void>, int)>('chmod');
+    final mallocFn = lib.lookupFunction<
+        ffi.Pointer<ffi.Void> Function(ffi.IntPtr),
+        ffi.Pointer<ffi.Void> Function(int)>('malloc');
+    final freeFn = lib.lookupFunction<
+        ffi.Void Function(ffi.Pointer<ffi.Void>),
+        void Function(ffi.Pointer<ffi.Void>)>('free');
+
+    final pathBytes = utf8.encode(path);
+    final ptr = mallocFn(pathBytes.length + 1);
+    final bytePtr = ptr.cast<ffi.Uint8>();
+    for (var i = 0; i < pathBytes.length; i++) {
+      bytePtr[i] = pathBytes[i];
+    }
+    bytePtr[pathBytes.length] = 0;
+    try {
+      chmodFn(ptr, mode);
+    } finally {
+      freeFn(ptr);
+    }
   }
 
   /// Load credentials from encrypted file.
@@ -110,13 +138,12 @@ class OAuthService {
       // Ensure directory exists
       await file.parent.create(recursive: true);
 
-      // Set permissions to 600 BEFORE writing content.
-      // Create empty file first if it doesn't exist, then chmod, then write.
-      if (!await file.exists()) {
-        await file.create();
-      }
-      await Process.run('chmod', ['600', file.path]);
-      await file.writeAsString(jsonEncode(existing));
+      // Atomic write: temp file → chmod 600 → rename to target.
+      // Eliminates TOCTOU race (target never exists with wrong permissions).
+      final tempFile = File('${file.path}.$pid.tmp');
+      await tempFile.writeAsString(jsonEncode(existing));
+      _chmod(tempFile.path, 384); // 0600 octal
+      await tempFile.rename(file.path);
 
       _credentials = creds;
       if (kDebugMode) debugPrint('OAuth: Encrypted credentials saved');
