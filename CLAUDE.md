@@ -38,7 +38,7 @@ flutter pub get
 ### Initialization flow (`main.dart`)
 Services are instantiated in `main()` and injected into `ClaudeMonitorApp`:
 ```
-main() → init window (320x420) → create services → init tray → run app
+main() → create services → run app → AppDelegate creates NSPanel (280x400)
 ```
 
 ### Data flow
@@ -83,7 +83,7 @@ lib/
 │   └── settings_screen.dart # Config UI (display toggles, interval, logout)
 ├── widgets/               # Reusable components
 │   ├── login_view.dart    # Two-phase OAuth login (browser → code paste)
-│   └── usage_bar.dart     # Color-coded progress bar (green/yellow/orange/red)
+│   └── usage_bar.dart     # Color-coded progress bar with tier icon
 └── utils/
     ├── constants.dart     # API endpoints, OAuth client ID, timeouts
     └── pkce.dart          # PKCE verifier/challenge/state generation
@@ -91,9 +91,11 @@ lib/
 
 ## UI Theme
 
-Catppuccin Mocha dark theme. Key colors:
-- Background: `0xFF1E1E2E` (Base), Surface: `0xFF313244`
-- Usage bar: Green `A6E3A1` (<50%) → Yellow `F9E2AF` (50-70%) → Orange `FAB387` (70-90%) → Red `F38BA8` (≥90%)
+macOS 네이티브 팝업 스타일 (라이트 모드):
+- **배경**: NSVisualEffectView (.menu material, 95% 불투명, behindWindow blending)
+- **윈도우**: Borderless NSPanel, 둥근 모서리 10px, Flutter 배경 transparent
+- **사용량 바**: Green `34C759` (<50%) → Yellow `FFCC00` (50-70%) → Orange `FF9500` (70-90%) → Red `FF3B30` (>=90%)
+- **티어 아이콘**: timer (5시간), calendar (주간), auto_awesome (Sonnet)
 
 ## API Endpoints
 
@@ -104,6 +106,8 @@ Catppuccin Mocha dark theme. Key colors:
 
 ## Platform Details
 
-- **macOS only** — uses system tray (`tray_manager`), window manager, Keychain storage
-- Window: 320x420px default, min 280x350, max 400x500, hidden title bar
+- **macOS only** — uses system tray, Keychain storage
+- Window: Borderless NSPanel 280x400, NSVisualEffectView 배경, 둥근 모서리 10px
+- `panel.contentViewController` 사용 금지 — `contentView`를 덮어씀. NSVisualEffectView를 contentView로 설정하고 Flutter view를 subview로 추가
+- Flutter 투명 배경: `DispatchQueue.main.async`로 CAMetalLayer `isOpaque = false` 설정 필요
 - Legacy credential migration path: `~/.claude/.credentials.json` → Keychain
