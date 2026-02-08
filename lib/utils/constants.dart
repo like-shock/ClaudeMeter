@@ -18,4 +18,5 @@ class ApiConstants {
 class CredentialsConstants {
   static const String credentialsFile = '.claude/.credentials.json';
   static const String credentialsKey = 'claudeAiOauth';
+  static const String encryptionSalt = 'claude-monitor-v1';
 }

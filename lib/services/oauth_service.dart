@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
 import 'dart:io';
+import 'package:crypto/crypto.dart';
+import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/credentials.dart';
@@ -9,7 +11,7 @@ import '../utils/constants.dart';
 import '../utils/pkce.dart';
 
 /// OAuth service for Claude authentication.
-/// Uses file-based storage (~/.claude/.credentials.json) like the Python reference.
+/// Uses AES-256 encrypted file storage (~/.claude/.credentials.json).
 class OAuthService {
   Credentials? _credentials;
 
@@ -23,7 +25,16 @@ class OAuthService {
   bool get hasCredentials => _credentials?.hasCredentials ?? false;
   Credentials? get credentials => _credentials;
 
-  /// Load credentials from file.
+  /// Derive AES-256 key from machine-unique values.
+  encrypt.Key _deriveKey() {
+    final hostname = Platform.localHostname;
+    final username = Platform.environment['USER'] ?? Platform.environment['USERNAME'] ?? 'default';
+    final salt = CredentialsConstants.encryptionSalt;
+    final keyBytes = sha256.convert(utf8.encode('$hostname:$username:$salt')).bytes;
+    return encrypt.Key(Uint8List.fromList(keyBytes));
+  }
+
+  /// Load credentials from encrypted file.
   Future<void> loadCredentials() async {
     try {
       final file = File(_credentialsPath);
@@ -45,8 +56,23 @@ class OAuthService {
         return;
       }
 
-      _credentials = Credentials.fromJson(oauthData);
-      debugPrint('OAuth: Credentials loaded');
+      // Check if data is encrypted (has 'iv' and 'data' fields)
+      if (oauthData.containsKey('iv') && oauthData.containsKey('data')) {
+        // Decrypt
+        final key = _deriveKey();
+        final iv = encrypt.IV.fromBase64(oauthData['iv'] as String);
+        final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc));
+        final decrypted = encrypter.decrypt64(oauthData['data'] as String, iv: iv);
+        final credJson = jsonDecode(decrypted) as Map<String, dynamic>;
+        _credentials = Credentials.fromJson(credJson);
+        debugPrint('OAuth: Encrypted credentials loaded');
+      } else {
+        // Legacy plaintext format — migrate to encrypted
+        _credentials = Credentials.fromJson(oauthData);
+        debugPrint('OAuth: Legacy plaintext credentials detected, migrating...');
+        await saveCredentials(_credentials!);
+        debugPrint('OAuth: Migration to encrypted format complete');
+      }
     } catch (e, stackTrace) {
       developer.log('Failed to load credentials',
           name: 'OAuthService', error: e, stackTrace: stackTrace, level: 900);
@@ -54,11 +80,11 @@ class OAuthService {
     }
   }
 
-  /// Save credentials to file.
+  /// Save credentials to encrypted file with restricted permissions.
   Future<void> saveCredentials(Credentials creds) async {
     try {
       final file = File(_credentialsPath);
-      
+
       // Read existing file to preserve other keys
       Map<String, dynamic> existing = {};
       if (await file.exists()) {
@@ -68,13 +94,27 @@ class OAuthService {
         } catch (_) {}
       }
 
-      existing[CredentialsConstants.credentialsKey] = creds.toJson();
+      // Encrypt credentials
+      final key = _deriveKey();
+      final iv = encrypt.IV.fromSecureRandom(16);
+      final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc));
+      final plaintext = jsonEncode(creds.toJson());
+      final encrypted = encrypter.encrypt(plaintext, iv: iv);
+
+      existing[CredentialsConstants.credentialsKey] = {
+        'iv': iv.base64,
+        'data': encrypted.base64,
+      };
 
       // Ensure directory exists
       await file.parent.create(recursive: true);
       await file.writeAsString(jsonEncode(existing));
+
+      // Set file permissions to 600 (owner read/write only)
+      await Process.run('chmod', ['600', file.path]);
+
       _credentials = creds;
-      debugPrint('OAuth: Credentials saved');
+      debugPrint('OAuth: Encrypted credentials saved');
     } catch (e, stackTrace) {
       developer.log('Failed to save credentials',
           name: 'OAuthService', error: e, stackTrace: stackTrace, level: 1000);
