@@ -14,6 +14,7 @@ import '../utils/pkce.dart';
 /// Uses AES-256 encrypted file storage (~/.claude/.credentials.json).
 class OAuthService {
   Credentials? _credentials;
+  Future<void>? _refreshLock;
 
   static String get _credentialsPath {
     final home = Platform.environment['HOME'] ?? '.';
@@ -373,13 +374,23 @@ class OAuthService {
   }
 
   /// Get a valid access token, refreshing if necessary.
+  /// Uses _refreshLock to prevent concurrent refresh requests.
   Future<String?> getAccessToken() async {
     if (_credentials == null || !_credentials!.hasCredentials) {
       return null;
     }
 
     if (_credentials!.isExpired) {
-      await _refreshToken();
+      if (_refreshLock != null) {
+        await _refreshLock;
+      } else {
+        _refreshLock = _refreshToken();
+        try {
+          await _refreshLock;
+        } finally {
+          _refreshLock = null;
+        }
+      }
     }
 
     return _credentials?.accessToken;
