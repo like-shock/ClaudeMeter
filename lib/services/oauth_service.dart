@@ -198,6 +198,8 @@ class OAuthService {
 
       // Wait for callback (120 second timeout)
       String? authCode;
+      var requestCount = 0;
+      const maxRequests = 10;
       final completer = Completer<void>();
       final timeout = Timer(const Duration(seconds: 120), () {
         if (!completer.isCompleted) {
@@ -207,6 +209,16 @@ class OAuthService {
       });
 
       server.listen((request) {
+        // Rate limit: reject after max requests
+        requestCount++;
+        if (requestCount > maxRequests) {
+          request.response
+            ..statusCode = HttpStatus.tooManyRequests
+            ..close();
+          if (!completer.isCompleted) completer.complete();
+          return;
+        }
+
         final uri = request.uri;
 
         // Ignore non-callback requests (favicon, etc.)
