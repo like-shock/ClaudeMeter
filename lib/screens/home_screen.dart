@@ -56,9 +56,9 @@ class HomeScreen extends StatelessWidget {
   Widget _buildTitleBar() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: const BoxDecoration(
-        color: Color(0xFFF2F2F7),
-        border: Border(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF2F2F7).withValues(alpha: 0.7),
+        border: const Border(
           bottom: BorderSide(
             color: Color(0xFFD1D1D6),
             width: 0.5,

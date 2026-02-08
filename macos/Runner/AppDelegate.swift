@@ -98,28 +98,45 @@ class AppDelegate: FlutterAppDelegate {
         
         RegisterGeneratedPlugins(registry: flutterViewController)
         
-        // NSPanel 생성 (팝오버 스타일)
-        let contentRect = NSRect(x: 0, y: 0, width: 320, height: 400)
+        // NSPanel 생성 (borderless 팝업 스타일)
+        let contentRect = NSRect(x: 0, y: 0, width: 280, height: 400)
         panel = PopoverPanel(
             contentRect: contentRect,
-            styleMask: [.nonactivatingPanel, .titled, .closable, .fullSizeContentView],
+            styleMask: [.nonactivatingPanel, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
-        
+
         panel.isFloatingPanel = true
         panel.level = .floating
-        panel.titleVisibility = .hidden
-        panel.titlebarAppearsTransparent = true
         panel.isMovableByWindowBackground = false
+        panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = true
-        panel.contentViewController = flutterViewController
-        
-        // 모서리 둥글게
-        panel.contentView?.wantsLayer = true
-        panel.contentView?.layer?.cornerRadius = 10
-        panel.contentView?.layer?.masksToBounds = true
+
+        // NSVisualEffectView (.menu 스타일, 둥근 모서리)
+        let visualEffect = NSVisualEffectView(frame: contentRect)
+        visualEffect.material = .menu
+        visualEffect.state = .active
+        visualEffect.blendingMode = .behindWindow
+        visualEffect.wantsLayer = true
+        visualEffect.layer?.cornerRadius = 10
+        visualEffect.layer?.masksToBounds = true
+        visualEffect.alphaValue = 0.95
+        visualEffect.autoresizingMask = [.width, .height]
+
+        // Flutter 뷰를 VisualEffect 위에 배치
+        let flutterView = flutterViewController.view
+        flutterView.frame = visualEffect.bounds
+        flutterView.autoresizingMask = [.width, .height]
+        visualEffect.addSubview(flutterView)
+
+        panel.contentView = visualEffect
+
+        // Flutter 렌더링 표면 투명 처리
+        DispatchQueue.main.async {
+            self.makeFlutterViewTransparent(flutterView)
+        }
         
         statusBarController = StatusBarController(panel)
         
@@ -127,6 +144,22 @@ class AppDelegate: FlutterAppDelegate {
         NSApp.setActivationPolicy(.accessory)
     }
     
+    private func makeFlutterViewTransparent(_ view: NSView) {
+        view.wantsLayer = true
+        view.layer?.isOpaque = false
+        view.layer?.backgroundColor = CGColor.clear
+        for subview in view.subviews {
+            subview.wantsLayer = true
+            subview.layer?.isOpaque = false
+            subview.layer?.backgroundColor = CGColor.clear
+            if let metalLayer = subview.layer as? CAMetalLayer {
+                metalLayer.isOpaque = false
+                metalLayer.backgroundColor = CGColor.clear
+            }
+            makeFlutterViewTransparent(subview)
+        }
+    }
+
     override func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return false
     }
