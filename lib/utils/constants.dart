@@ -9,7 +9,8 @@ class ApiConstants {
 
   static const String clientId = '9d1c250a-e61b-44d9-88ed-5944d1962f5e';
   static const String oauthScopes = 'user:profile';
-  static const String userAgent = 'claude-code/2.0.32';
+  static const String userAgent =
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
   static const Duration apiTimeout = Duration(seconds: 15);
 
