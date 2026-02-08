@@ -196,7 +196,7 @@ class OAuthService {
       request.headers.contentLength = bodyBytes.length;
       request.add(bodyBytes);
 
-      final response = await request.close();
+      final response = await request.close().timeout(ApiConstants.apiTimeout);
       final responseBody = await _readLimited(response);
       return (statusCode: response.statusCode, body: responseBody);
     } finally {
