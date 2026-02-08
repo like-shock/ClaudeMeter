@@ -133,7 +133,7 @@ class UsageService {
 
       if (response.statusCode != 200) {
         developer.log(
-          'Usage API error: ${response.statusCode} - $responseBody',
+          'Usage API error: ${response.statusCode}',
           name: 'UsageService',
           level: 900, // WARNING
         );
