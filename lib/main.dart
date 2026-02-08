@@ -15,8 +15,9 @@ void main() async {
   final configService = ConfigService();
   final trayService = TrayService();
 
-  // Setup quit callback (used by UI quit button)
+  // Setup quit callback (used by tray menu)
   trayService.onQuit = () {
+    trayService.dispose();
     exit(0);
   };
 

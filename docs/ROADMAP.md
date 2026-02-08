@@ -151,6 +151,8 @@
 - [x] 파일 권한 600 (owner read/write only)
 - [x] 레거시 평문 자동 마이그레이션
 - [x] Per-request HttpClient + badCertificateCallback
+- [x] 앱 종료 시 리소스 정리 (타이머 해제, 트레이 리스너 제거)
+- [x] 미사용 의존성 제거 (flutter_secure_storage)
 
 ### 7.3 [ ] 빌드 & 배포
 - [ ] `flutter build macos`

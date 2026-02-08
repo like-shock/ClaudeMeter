@@ -165,6 +165,8 @@ class _ClaudeMonitorAppState extends State<ClaudeMonitorApp> {
   }
 
   void _handleQuit() {
+    _refreshTimer?.cancel();
+    widget.trayService.dispose();
     exit(0);
   }
 

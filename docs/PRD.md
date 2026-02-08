@@ -158,7 +158,6 @@ dependencies:
   path_provider: ^2.1.5         # 파일 경로
   crypto: ^3.0.6                # PKCE SHA256 + 암호화 키 유도
   encrypt: ^5.0.3               # AES-256-CBC 자격증명 암호화
-  flutter_secure_storage: ^9.2.4 # (미사용, 향후 제거 예정)
 ```
 
 ---
@@ -189,4 +188,3 @@ dependencies:
 - 알림: 사용량 임계치 도달 시 macOS 알림
 - 히스토리: 사용량 추이 그래프
 - 다크/라이트 테마 자동 전환
-- `flutter_secure_storage` 제거 (미사용 의존성 정리)
