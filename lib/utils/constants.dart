@@ -12,6 +12,9 @@ class ApiConstants {
   static const String userAgent = 'claude-code/2.0.32';
 
   static const Duration apiTimeout = Duration(seconds: 15);
+
+  /// Maximum API response size (1 MB).
+  static const int maxResponseBytes = 1024 * 1024;
 }
 
 /// Credentials file path

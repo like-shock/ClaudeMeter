@@ -134,6 +134,18 @@ class OAuthService {
     return client;
   }
 
+  /// Read HTTP response body with size limit to prevent OOM.
+  static Future<String> _readLimited(HttpClientResponse response) async {
+    final bytes = <int>[];
+    await for (final chunk in response) {
+      bytes.addAll(chunk);
+      if (bytes.length > ApiConstants.maxResponseBytes) {
+        throw Exception('Response too large');
+      }
+    }
+    return utf8.decode(bytes);
+  }
+
   /// Make secure POST request.
   Future<({int statusCode, String body})> _securePost(
     String url,
@@ -154,7 +166,7 @@ class OAuthService {
       request.add(bodyBytes);
 
       final response = await request.close();
-      final responseBody = await response.transform(utf8.decoder).join();
+      final responseBody = await _readLimited(response);
       return (statusCode: response.statusCode, body: responseBody);
     } finally {
       client.close();
