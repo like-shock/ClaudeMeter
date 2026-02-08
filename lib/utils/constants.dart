@@ -8,7 +8,7 @@ class ApiConstants {
       'https://api.anthropic.com/api/oauth/profile';
 
   static const String clientId = '9d1c250a-e61b-44d9-88ed-5944d1962f5e';
-  static const String oauthScopes = 'org:create_api_key user:profile user:inference';
+  static const String oauthScopes = 'user:profile';
   static const String userAgent = 'claude-code/2.0.32';
 
   static const Duration apiTimeout = Duration(seconds: 15);
