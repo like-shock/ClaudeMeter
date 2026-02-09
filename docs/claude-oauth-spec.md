@@ -18,7 +18,7 @@
 
 ```
 Client ID:  9d1c250a-e61b-44d9-88ed-5944d1962f5e  (public client, secret 없음)
-Scopes:     org:create_api_key user:profile user:inference
+Scopes:     user:profile  (최소 권한 — 프로필 접근만 요청)
 User-Agent: claude-code/2.0.32
 ```
 
@@ -57,7 +57,7 @@ redirect_uri = http://localhost:{port}/callback
 | `client_id` | `9d1c250a-...` |
 | `response_type` | `code` |
 | `redirect_uri` | `http://localhost:{port}/callback` |
-| `scope` | `org:create_api_key user:profile user:inference` |
+| `scope` | `user:profile` |
 | `code_challenge` | PKCE challenge 값 |
 | `code_challenge_method` | `S256` |
 | `state` | CSRF 토큰 |

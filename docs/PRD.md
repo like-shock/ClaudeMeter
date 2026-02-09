@@ -78,7 +78,7 @@ Claude AI 사용량을 macOS 메뉴바에서 실시간으로 모니터링할 수
 
 ### 3.2 OAuth 파라미터
 - **Client ID**: `9d1c250a-e61b-44d9-88ed-5944d1962f5e`
-- **Scopes**: `org:create_api_key user:profile user:inference`
+- **Scopes**: `user:profile` (최소 권한 원칙 — 프로필 접근만 필요)
 - **Grant Type**: `authorization_code`, `refresh_token`
 - **PKCE**: S256 code_challenge
 
