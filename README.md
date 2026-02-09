@@ -1,6 +1,6 @@
-# Claude Meter
+# ClaudeMeter
 
-macOS 시스템 트레이 앱으로 Claude AI API 사용량을 실시간 모니터링합니다.
+데스크톱 시스템 트레이 앱으로 Claude AI API 사용량을 실시간 모니터링합니다.
 ([ClaudeMonitor](https://github.com/whiterub/ClaudeMonitor))
 
 ## 주요 기능
@@ -9,30 +9,47 @@ macOS 시스템 트레이 앱으로 Claude AI API 사용량을 실시간 모니�
 - 5시간 / 7일 / 7일 Sonnet 세 가지 티어별 사용량 표시
 - 시스템 트레이 상주, 자동 새로고침
 - AES-256 암호화 자격증명 저장
+- macOS + Windows 지원
 
 ## 요구 사항
 
-- macOS 10.15+
+- **macOS**: 10.15+ (Catalina 이상)
+- **Windows**: 10+ (x64)
 - Flutter SDK
 
 ## 개발
 
 ```bash
 flutter pub get
+
+# macOS
 flutter run -d macos
+
+# Windows
+flutter run -d windows
 ```
 
-## 배포 (사내, 서명 없음)
+## 빌드
 
-Apple Developer 계정 없이 배포하는 방법입니다.
-
-### 빌드
+### macOS (DMG)
 
 ```bash
 ./scripts/build_release.sh
 ```
 
 `ClaudeMeter-1.0.0.dmg` 파일이 프로젝트 루트에 생성됩니다.
+
+### Windows
+
+```powershell
+powershell scripts/build_release_win.ps1
+```
+
+출력 경로: `build/windows/x64/runner/Release/`
+
+## 배포 (macOS, 사내, 서명 없음)
+
+Apple Developer 계정 없이 배포하는 방법입니다.
 
 ### 배포
 
@@ -58,6 +75,15 @@ xattr -cr /Applications/claude_meter.app
 3. 관리자 비밀번호 입력
 
 > macOS Sequoia 15.1+에서는 방법 B가 더 까다로울 수 있으므로 **방법 A(xattr)를 권장**합니다.
+
+## 플랫폼별 차이
+
+| 항목 | macOS | Windows |
+|------|-------|---------|
+| 배경 | NSVisualEffectView (frosted glass) | 반투명 솔리드 배경 |
+| 트레이 아이콘 | 템플릿 PNG | 표준 32x32 PNG |
+| 파일 권한 | chmod 600 | NTFS ACL |
+| 자격증명 경로 | `$HOME/.claude/` | `%USERPROFILE%\.claude\` |
 
 ## 향후 참고 (Developer ID 전환 시)
 
