@@ -82,8 +82,11 @@ xattr -cr /Applications/claude_meter.app
 |------|-------|---------|
 | 배경 | NSVisualEffectView (frosted glass) | 반투명 솔리드 배경 |
 | 트레이 아이콘 | 템플릿 PNG | 표준 32x32 PNG |
+| 앱 샌드박스 | 활성화 (컨테이너 격리) | 해당 없음 |
 | 파일 권한 | chmod 600 | NTFS ACL |
-| 자격증명 경로 | `$HOME/.claude/` | `%USERPROFILE%\.claude\` |
+| 자격증명 경로 | 앱 컨테이너 내 `$HOME/.claude/` | `%USERPROFILE%\.claude\` |
+
+> **macOS 샌드박스 참고**: 앱 샌드박스가 활성화되어 있어 `$HOME`이 `~/Library/Containers/<bundle-id>/Data/`로 리다이렉트됩니다. 자격증명 파일은 앱 컨테이너 내부에 저장되며, Claude CLI의 `~/.claude/`와는 별도 경로입니다.
 
 ## 향후 참고 (Developer ID 전환 시)
 

@@ -104,7 +104,7 @@ Claude AI 사용량을 데스크톱 시스템 트레이에서 실시간으로 �
 
 ### 3.4 자격 증명 저장
 - 경로: `~/.claude/.credentials.json`
-  - macOS/Linux: `$HOME/.claude/.credentials.json` (권한 600, POSIX chmod via FFI)
+  - macOS (샌드박스): 앱 컨테이너 내부 경로 (`~/Library/Containers/<bundle-id>/Data/.claude/.credentials.json`). 앱 샌드박스가 `$HOME`을 컨테이너 경로로 리다이렉트함.
   - Windows: `%USERPROFILE%\.claude\.credentials.json` (NTFS ACL로 보호)
 - 키: `claudeAiOauth`
 - **암호화**: AES-256-CBC (매 저장 시 랜덤 IV)
@@ -193,8 +193,10 @@ dependencies:
 - **Windows**: 10+ (x64)
 
 ### 6.3 보안
+- **macOS 앱 샌드박스**: `com.apple.security.app-sandbox` 활성화. 파일 시스템 접근이 앱 컨테이너 내부로 격리됨.
+  - entitlements: `network.client` (API 통신), `network.server` (OAuth 콜백 서버)
 - OAuth 토큰은 AES-256-CBC 암호화 후 로컬 파일에 저장
-  - macOS/Linux: 파일 권한 600 (POSIX chmod via FFI)
+  - macOS: 앱 컨테이너 내부 + 파일 권한 600 (POSIX chmod via FFI)
   - Windows: NTFS ACL로 `%USERPROFILE%` 디렉토리 보호
 - 머신 고유값(hostname + username) 기반 키 유도 (사용자 입력 불필요)
 - PKCE로 인증 코드 보호
@@ -214,9 +216,10 @@ dependencies:
 | 트레이 아이콘 | 템플릿 PNG (`isTemplate: true`) | 표준 32x32 PNG |
 | 윈도우 토글 | Native StatusBarController | WindowListener + windowManager |
 | 외부 클릭 숨김 | NSEvent 글로벌 모니터 | onWindowBlur 이벤트 |
+| 앱 샌드박스 | 활성화 (컨테이너 격리) | 해당 없음 |
 | 파일 권한 | POSIX chmod 0600 (FFI) | NTFS ACL (별도 처리 불필요) |
+| 자격증명 경로 | 앱 컨테이너 내 `$HOME/.claude/` | `%USERPROFILE%\.claude\` |
 | 중복 실행 방지 | NSRunningApplication 체크 | Named Mutex |
-| Home 디렉토리 | `$HOME` | `%USERPROFILE%` (폴백) |
 | User-Agent | macOS UA 문자열 | Windows UA 문자열 |
 
 ---

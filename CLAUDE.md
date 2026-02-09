@@ -122,8 +122,8 @@ lib/
 ## Credential Storage
 
 - **AES-256-CBC 암호화** 파일 저장: `~/.claude/.credentials.json`
-- macOS/Linux: 파일 권한 600 (POSIX chmod via FFI)
-- Windows: NTFS ACL로 `%USERPROFILE%` 디렉토리 보호 (별도 chmod 불필요)
+- **macOS (샌드박스)**: 앱 컨테이너 내부 경로 (`~/Library/Containers/<bundle-id>/Data/.claude/.credentials.json`). 앱 샌드박스가 `$HOME`을 컨테이너 경로로 리다이렉트. 파일 권한 600 (POSIX chmod via FFI). Claude CLI의 `~/.claude/`와 별도 경로.
+- **Windows**: `%USERPROFILE%\.claude\.credentials.json` (NTFS ACL 보호, 별도 chmod 불필요)
 - 경로 해석: `HOME` → `USERPROFILE` 폴백 (Windows 호환)
 - 키 생성: `SHA-256(hostname + ":" + username + ":" + salt)` → 32바이트 AES 키 (사용자 입력 불필요)
 - 저장 포맷: `{ "claudeAiOauth": { "iv": "base64...", "data": "AES-256-CBC encrypted base64..." } }`
@@ -133,6 +133,9 @@ lib/
 ## Platform Details
 
 ### macOS
+- **앱 샌드박스 활성화** (`com.apple.security.app-sandbox: true`)
+  - entitlements: `network.client` (API 통신), `network.server` (OAuth 콜백 서버)
+  - `$HOME`이 앱 컨테이너 (`~/Library/Containers/<bundle-id>/Data/`)로 리다이렉트됨
 - AppDelegate.swift: NSPanel + NSVisualEffectView
 - `panel.contentViewController` 사용 금지 — `contentView`를 덮어씀
 - Flutter 투명 배경: `DispatchQueue.main.async`로 CAMetalLayer `isOpaque = false` 설정 필요
