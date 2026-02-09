@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-macOS system tray application that monitors Claude AI API usage in real-time. Built with Flutter (Dart), it authenticates via OAuth 2.0 with PKCE and displays usage statistics across three tiers (5-hour, 7-day, 7-day Sonnet). UI language is Korean.
+ClaudeMeter — macOS system tray application that monitors Claude AI API usage in real-time. Built with Flutter (Dart), it authenticates via OAuth 2.0 with PKCE and displays usage statistics across three tiers (5-hour, 7-day, 7-day Sonnet). UI language is Korean.
 
 ## Build & Development Commands
 
@@ -87,7 +87,7 @@ lib/
 │   ├── home_screen.dart   # Usage display or login view
 │   └── settings_screen.dart # Config UI (display toggles, interval, logout)
 ├── widgets/               # Reusable components
-│   ├── login_view.dart    # Two-phase OAuth login (browser → code paste)
+│   ├── login_view.dart    # One-click OAuth login (browser → auto callback)
 │   └── usage_bar.dart     # Color-coded progress bar with tier icon
 └── utils/
     ├── constants.dart     # API endpoints, OAuth client ID, timeouts, encryption salt
