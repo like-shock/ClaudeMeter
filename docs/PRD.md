@@ -1,8 +1,8 @@
-# ClaudeMeter v3.0 PRD — 듀얼 모드 UI
+# ClaudeMeter v2.0 PRD — 듀얼 모드 UI
 
 ## 개요
 
-ClaudeMeter v3.0은 두 가지 독립된 모드를 제공합니다:
+ClaudeMeter v2.0은 두 가지 독립된 모드를 제공합니다:
 
 1. **사용량 모니터** (Plan 모드) — OAuth 기반 구독 사용률 모니터링
 2. **비용 추적기** (API 모드) — 로컬 JSONL 파싱 기반 API 비용 추적
