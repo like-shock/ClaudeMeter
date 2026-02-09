@@ -48,7 +48,10 @@ class CostTrackingService {
 
     if (jsonlFiles.isEmpty) return CostData.empty();
 
-    // Parse all files and accumulate costs
+    // Parse all files and accumulate costs.
+    // Deduplicate by message.id + requestId — Claude Code writes the same
+    // assistant message multiple times (streaming chunks) in JSONL.
+    final seenMessages = <String>{};
     final dailyCosts = <String, _DailyAccumulator>{};
     final sessionIds = <String>{};
     DateTime? oldestSession;
@@ -58,6 +61,7 @@ class CostTrackingService {
       try {
         await _parseJsonlFile(
           file,
+          seenMessages,
           dailyCosts,
           sessionIds,
           (timestamp) {
@@ -110,6 +114,7 @@ class CostTrackingService {
   /// Parse a single JSONL file and accumulate token data.
   Future<void> _parseJsonlFile(
     File file,
+    Set<String> seenMessages,
     Map<String, _DailyAccumulator> dailyCosts,
     Set<String> sessionIds,
     void Function(DateTime) onTimestamp,
@@ -144,6 +149,15 @@ class CostTrackingService {
 
       // Skip synthetic entries (internal error messages, not real API calls)
       if (model.startsWith('<')) continue;
+
+      // Deduplicate: Claude Code writes the same message multiple times
+      // in JSONL (streaming). Use message.id + requestId as unique key.
+      final msgId = message['id'];
+      final reqId = json['requestId'];
+      if (msgId is String && msgId.isNotEmpty) {
+        final dedupKey = '$msgId:${reqId ?? ''}';
+        if (!seenMessages.add(dedupKey)) continue;
+      }
 
       // Track session
       final sessionId = json['sessionId'];
