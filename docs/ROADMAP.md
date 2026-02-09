@@ -1,4 +1,4 @@
-# Claude Monitor for macOS - 작업 로드맵
+# Claude Meter for macOS - 작업 로드맵
 
 ## 작업 단위 설명
 

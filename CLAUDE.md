@@ -39,7 +39,7 @@ flutter pub get
 **Service-based MVC** with manual `setState()` state management (no Provider/Riverpod/Bloc).
 
 ### Initialization flow (`main.dart`)
-Services are instantiated in `main()` and injected into `ClaudeMonitorApp`:
+Services are instantiated in `main()` and injected into `ClaudeMeterApp`:
 ```
 main() → create services → run app → AppDelegate creates NSPanel (280x400)
 ```

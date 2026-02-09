@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:claude_monitor_flutter/models/config.dart';
+import 'package:claude_meter/models/config.dart';
 
 void main() {
   group('AppConfig', () {

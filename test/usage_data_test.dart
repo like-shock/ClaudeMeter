@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:claude_monitor_flutter/models/usage_data.dart';
+import 'package:claude_meter/models/usage_data.dart';
 
 void main() {
   group('UsageTier', () {

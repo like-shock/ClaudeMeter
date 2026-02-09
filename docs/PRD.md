@@ -1,9 +1,9 @@
-# Claude Monitor for macOS - PRD (Product Requirements Document)
+# Claude Meter for macOS - PRD (Product Requirements Document)
 
 ## 1. 개요
 
 ### 1.1 프로젝트명
-**Claude Monitor for macOS** (Flutter Edition)
+**Claude Meter for macOS** (Flutter Edition)
 
 ### 1.2 목표
 Claude AI 사용량을 macOS 메뉴바에서 실시간으로 모니터링할 수 있는 네이티브 경험 제공
@@ -113,7 +113,7 @@ Claude AI 사용량을 macOS 메뉴바에서 실시간으로 모니터링할 수
 ## 4. 프로젝트 구조
 
 ```
-claude_monitor_flutter/
+claude_meter/
 ├── lib/
 │   ├── main.dart               # 앱 엔트리포인트
 │   ├── app.dart                # 앱 위젯

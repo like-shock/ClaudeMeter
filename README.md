@@ -1,4 +1,4 @@
-# Claude Monitor
+# Claude Meter
 
 macOS 시스템 트레이 앱으로 Claude AI API 사용량을 실시간 모니터링합니다.
 
@@ -31,7 +31,7 @@ Apple Developer 계정 없이 배포하는 방법입니다.
 ./scripts/build_release.sh
 ```
 
-`ClaudeMonitor-1.0.0.dmg` 파일이 프로젝트 루트에 생성됩니다.
+`ClaudeMeter-1.0.0.dmg` 파일이 프로젝트 루트에 생성됩니다.
 
 ### 배포
 
@@ -45,7 +45,7 @@ DMG 파일을 Slack/Teams/이메일로 공유합니다.
 
 ```bash
 # DMG에서 앱을 /Applications로 드래그 복사 후:
-xattr -cr /Applications/claude_monitor_flutter.app
+xattr -cr /Applications/claude_meter.app
 ```
 
 이후 정상 실행 가능합니다.

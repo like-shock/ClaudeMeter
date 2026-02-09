@@ -21,7 +21,7 @@ void main() async {
     exit(0);
   };
 
-  runApp(ClaudeMonitorApp(
+  runApp(ClaudeMeterApp(
     oauthService: oauthService,
     usageService: usageService,
     configService: configService,

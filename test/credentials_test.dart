@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:claude_monitor_flutter/models/credentials.dart';
+import 'package:claude_meter/models/credentials.dart';
 
 void main() {
   group('Credentials', () {

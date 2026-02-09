@@ -12,13 +12,13 @@ import 'screens/home_screen.dart';
 import 'screens/settings_screen.dart';
 
 /// Main application widget.
-class ClaudeMonitorApp extends StatefulWidget {
+class ClaudeMeterApp extends StatefulWidget {
   final OAuthService oauthService;
   final UsageService usageService;
   final ConfigService configService;
   final TrayService trayService;
 
-  const ClaudeMonitorApp({
+  const ClaudeMeterApp({
     super.key,
     required this.oauthService,
     required this.usageService,
@@ -27,10 +27,10 @@ class ClaudeMonitorApp extends StatefulWidget {
   });
 
   @override
-  State<ClaudeMonitorApp> createState() => _ClaudeMonitorAppState();
+  State<ClaudeMeterApp> createState() => _ClaudeMeterAppState();
 }
 
-class _ClaudeMonitorAppState extends State<ClaudeMonitorApp> {
+class _ClaudeMeterAppState extends State<ClaudeMeterApp> {
   bool _showSettings = false;
   bool _isLoading = false;
   String? _loginError;
@@ -179,7 +179,7 @@ class _ClaudeMonitorAppState extends State<ClaudeMonitorApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Claude Monitor',
+      title: 'Claude Meter',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.light().copyWith(
         scaffoldBackgroundColor: Colors.transparent,

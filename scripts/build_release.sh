@@ -2,7 +2,7 @@
 set -e
 
 VERSION="1.0.0"
-APP_NAME="claude_monitor_flutter"
+APP_NAME="claude_meter"
 
 echo "=== Flutter Release Build ==="
 flutter clean
@@ -17,10 +17,10 @@ if [ ! -d "$APP" ]; then
 fi
 
 echo "=== Creating DMG ==="
-DMG_NAME="ClaudeMonitor-$VERSION.dmg"
+DMG_NAME="ClaudeMeter-$VERSION.dmg"
 rm -f "$DMG_NAME"
 
-hdiutil create -volname "Claude Monitor" \
+hdiutil create -volname "Claude Meter" \
   -srcfolder "$APP" \
   -ov -format UDZO \
   "$DMG_NAME"

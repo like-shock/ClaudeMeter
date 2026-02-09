@@ -24,7 +24,7 @@ class TrayService with TrayListener {
       if (kDebugMode) debugPrint('Tray setIcon failed: $e');
     }
 
-    await trayManager.setToolTip('Claude Monitor');
+    await trayManager.setToolTip('Claude Meter');
 
     final menu = Menu(
       items: [

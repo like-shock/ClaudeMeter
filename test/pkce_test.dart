@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:claude_monitor_flutter/utils/pkce.dart';
+import 'package:claude_meter/utils/pkce.dart';
 
 void main() {
   group('PKCE', () {

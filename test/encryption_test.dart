@@ -5,8 +5,8 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:claude_monitor_flutter/models/credentials.dart';
-import 'package:claude_monitor_flutter/utils/constants.dart';
+import 'package:claude_meter/models/credentials.dart';
+import 'package:claude_meter/utils/constants.dart';
 
 /// Replicate OAuthService._deriveKey() logic for testing.
 encrypt.Key _deriveKey() {

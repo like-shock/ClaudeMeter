@@ -1,12 +1,12 @@
-// Basic Flutter widget test for Claude Monitor.
+// Basic Flutter widget test for Claude Meter.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:claude_monitor_flutter/models/usage_data.dart';
-import 'package:claude_monitor_flutter/models/config.dart';
-import 'package:claude_monitor_flutter/widgets/usage_bar.dart';
-import 'package:claude_monitor_flutter/widgets/login_view.dart';
+import 'package:claude_meter/models/usage_data.dart';
+import 'package:claude_meter/models/config.dart';
+import 'package:claude_meter/widgets/usage_bar.dart';
+import 'package:claude_meter/widgets/login_view.dart';
 
 void main() {
   group('UsageBar', () {
