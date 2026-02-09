@@ -13,7 +13,10 @@ macOS system tray application that monitors Claude AI API usage in real-time. Bu
 flutter run -d macos
 
 # Build release
-flutter build macos
+flutter build macos --release
+
+# Build release DMG (사내 배포용)
+./scripts/build_release.sh
 
 # Run all tests (89 tests across 8 files)
 flutter test
@@ -66,6 +69,8 @@ TrayService (system tray menu) ↔ AppState (window toggle/refresh)
 ## Project Structure
 
 ```
+scripts/
+└── build_release.sh       # 릴리스 빌드 + DMG 패키징 스크립트
 lib/
 ├── main.dart              # Entry point, window/tray init, service wiring
 ├── app.dart               # Root StatefulWidget, global state, auto-refresh timer

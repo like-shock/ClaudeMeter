@@ -6,7 +6,8 @@
 **Claude Monitor for macOS** (Flutter Edition)
 
 ### 1.2 목표
-Windows용 ClaudeMonitor를 macOS 메뉴바 앱으로 재구현하여, Claude AI 사용량을 실시간으로 모니터링할 수 있는 네이티브 경험 제공
+Claude AI 사용량을 macOS 메뉴바에서 실시간으로 모니터링할 수 있는 네이티브 경험 제공
+([ClaudeMonitor](https://github.com/whiterub/ClaudeMonitor))
 
 ### 1.3 기술 스택
 - **Framework**: Flutter 3.x (macOS)
