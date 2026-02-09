@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-ClaudeMeter — Desktop system tray application that monitors Claude AI API usage in real-time. Built with Flutter (Dart), it authenticates via OAuth 2.0 with PKCE and displays usage statistics across three tiers (5-hour, 7-day, 7-day Sonnet). Supports macOS and Windows. UI language is Korean.
+ClaudeMeter — Desktop system tray application that monitors Claude AI API usage in real-time. Built with Flutter (Dart), it authenticates via OAuth 2.0 with PKCE and displays usage statistics across three tiers (5-hour, 7-day, 7-day Sonnet). Also provides local JSONL-based API cost tracking by parsing Claude Code session files. Supports macOS and Windows. UI language is Korean.
 
 ## Build & Development Commands
 
@@ -23,7 +23,7 @@ flutter build windows --release
 # Build release (Windows 배포용)
 powershell scripts/build_release_win.ps1
 
-# Run all tests (89 tests across 8 files)
+# Run all tests (114 tests across 11 files)
 flutter test
 
 # Run a single test file
@@ -57,8 +57,12 @@ OAuthService (AES-256 encrypted file ~/.claude/.credentials.json)
     → UsageService (Bearer token → GET /api/oauth/usage)
     → UsageData model → HomeScreen (UsageBar widgets)
 
+CostTrackingService (local JSONL parsing from ~/.claude/projects/)
+    → PricingTable (model-specific rates) → CostData model
+    → CostScreen (CostBar widgets, daily/total summaries)
+
 ConfigService (SharedPreferences) ↔ SettingsScreen
-TrayService (system tray menu) ↔ AppState (window toggle/refresh)
+TrayService (system tray menu) ↔ AppState (window toggle/refresh/cost)
 ```
 
 ### OAuth PKCE flow
@@ -84,22 +88,27 @@ lib/
 ├── app.dart               # Root StatefulWidget, global state, auto-refresh timer, WindowListener (Win)
 ├── models/                # Immutable data classes
 │   ├── config.dart        # AppConfig (refresh interval, display toggles)
+│   ├── cost_data.dart     # CostData, ModelCost, DailyCost (JSONL cost tracking)
 │   ├── credentials.dart   # OAuth tokens (access, refresh, expiry)
 │   └── usage_data.dart    # UsageTier + UsageData (utilization, reset time)
 ├── services/              # Business logic
+│   ├── cost_tracking_service.dart # JSONL parsing from ~/.claude/projects/, cost calculation
 │   ├── oauth_service.dart # OAuth 2.0 + PKCE, token management, AES-256 encrypted file storage
 │   ├── usage_service.dart # API usage data fetching
 │   ├── config_service.dart# SharedPreferences persistence
 │   └── tray_service.dart  # System tray icon and menu (platform-aware)
 ├── screens/               # Full-page layouts
+│   ├── cost_screen.dart   # API cost display (today/total, model breakdown, daily)
 │   ├── home_screen.dart   # Usage display or login view
 │   └── settings_screen.dart # Config UI (display toggles, interval, logout)
 ├── widgets/               # Reusable components
+│   ├── cost_bar.dart      # Model-colored progress bar for cost display
 │   ├── login_view.dart    # One-click OAuth login (browser → auto callback)
 │   └── usage_bar.dart     # Color-coded progress bar with tier icon
 └── utils/
     ├── constants.dart     # API endpoints, OAuth client ID, timeouts, encryption salt
     ├── pkce.dart          # PKCE verifier/challenge/state generation
+    ├── pricing.dart       # Model pricing table (USD/MTok), TokenUsage, cost calculation
     └── platform_window.dart # Windows window configuration (window_manager)
 ```
 
@@ -111,6 +120,17 @@ lib/
 - **윈도우**: Borderless, 280x400, 둥근 모서리 10px, Flutter 배경 transparent
 - **사용량 바**: Green `34C759` (<50%) → Yellow `FFCC00` (50-70%) → Orange `FF9500` (70-90%) → Red `FF3B30` (>=90%)
 - **티어 아이콘**: timer (5시간), calendar (주간), auto_awesome (Sonnet)
+- **비용 바 색상**: Purple `AF52DE` (Opus) / Blue `007AFF` (Sonnet) / Green `34C759` (Haiku)
+
+## Cost Tracking (JSONL 기반)
+
+- **데이터 소스**: `~/.claude/projects/` 내 `.jsonl` 파일 (서브에이전트 포함)
+- **파싱 대상**: `type: "assistant"` 라인의 `message.usage` 필드
+- **토큰 종류**: input, cache_creation (5m/1h ephemeral), cache_read, output
+- **가격표**: `pricing.dart`에 모델별 USD/MTok 하드코딩 (2026-02 기준)
+- **비용 공식**: `Σ(tokens × rate) / 1,000,000` (모델별)
+- **화면 구성**: 오늘 요금, 전체 누적, 모델별 비용, 최근 7일 일별
+- **macOS 접근**: `com.apple.security.temporary-exception.files.absolute-path.read-only` entitlement로 `/Users/` 읽기 허용
 
 ## API Endpoints
 

@@ -5,6 +5,7 @@ import 'services/oauth_service.dart';
 import 'services/usage_service.dart';
 import 'services/config_service.dart';
 import 'services/tray_service.dart';
+import 'services/cost_tracking_service.dart';
 import 'utils/platform_window.dart';
 
 void main() async {
@@ -20,6 +21,7 @@ void main() async {
   final usageService = UsageService(oauthService);
   final configService = ConfigService();
   final trayService = TrayService();
+  final costTrackingService = CostTrackingService();
 
   // Setup quit callback (used by tray menu)
   trayService.onQuit = () {
@@ -32,5 +34,6 @@ void main() async {
     usageService: usageService,
     configService: configService,
     trayService: trayService,
+    costTrackingService: costTrackingService,
   ));
 }

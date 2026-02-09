@@ -17,6 +17,7 @@ class HomeScreen extends StatelessWidget {
   final VoidCallback onLogin;
   final VoidCallback onRefresh;
   final VoidCallback onSettings;
+  final VoidCallback onCost;
   final VoidCallback onQuit;
 
   const HomeScreen({
@@ -32,6 +33,7 @@ class HomeScreen extends StatelessWidget {
     required this.onLogin,
     required this.onRefresh,
     required this.onSettings,
+    required this.onCost,
     required this.onQuit,
   });
 
@@ -80,6 +82,11 @@ class HomeScreen extends StatelessWidget {
             icon: Icons.refresh,
             onTap: isLoading || !isLoggedIn ? null : onRefresh,
             isLoading: isLoading,
+          ),
+          const SizedBox(width: 8),
+          _buildIconButton(
+            icon: Icons.attach_money,
+            onTap: onCost,
           ),
           const SizedBox(width: 8),
           _buildIconButton(

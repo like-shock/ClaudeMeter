@@ -5,12 +5,15 @@ import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 import 'models/usage_data.dart';
 import 'models/config.dart';
+import 'models/cost_data.dart';
 import 'services/oauth_service.dart';
 import 'services/usage_service.dart';
 import 'services/config_service.dart';
 import 'services/tray_service.dart';
+import 'services/cost_tracking_service.dart';
 import 'screens/home_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/cost_screen.dart';
 import 'utils/platform_window.dart';
 
 /// Main application widget.
@@ -19,6 +22,7 @@ class ClaudeMeterApp extends StatefulWidget {
   final UsageService usageService;
   final ConfigService configService;
   final TrayService trayService;
+  final CostTrackingService costTrackingService;
 
   const ClaudeMeterApp({
     super.key,
@@ -26,14 +30,17 @@ class ClaudeMeterApp extends StatefulWidget {
     required this.usageService,
     required this.configService,
     required this.trayService,
+    required this.costTrackingService,
   });
 
   @override
   State<ClaudeMeterApp> createState() => _ClaudeMeterAppState();
 }
 
+enum _AppScreen { home, settings, cost }
+
 class _ClaudeMeterAppState extends State<ClaudeMeterApp> with WindowListener {
-  bool _showSettings = false;
+  _AppScreen _currentScreen = _AppScreen.home;
   bool _isLoading = false;
   String? _loginError;
   String? _usageError;
@@ -43,9 +50,15 @@ class _ClaudeMeterAppState extends State<ClaudeMeterApp> with WindowListener {
   Timer? _refreshTimer;
   bool _windowVisible = false;
 
+  // Cost tracking state
+  CostData? _costData;
+  bool _isCostLoading = false;
+  String? _costError;
+
   OAuthService get _oauth => widget.oauthService;
   UsageService get _usage => widget.usageService;
   ConfigService get _config => widget.configService;
+  CostTrackingService get _costService => widget.costTrackingService;
 
   @override
   void initState() {
@@ -186,13 +199,35 @@ class _ClaudeMeterAppState extends State<ClaudeMeterApp> with WindowListener {
     }
   }
 
+  Future<void> _refreshCosts() async {
+    if (!mounted) return;
+    setState(() => _isCostLoading = true);
+
+    try {
+      final data = await _costService.calculateCosts();
+      if (!mounted) return;
+      setState(() {
+        _costData = data;
+        _costError = null;
+        _isCostLoading = false;
+      });
+    } catch (e) {
+      if (kDebugMode) debugPrint('Cost refresh error: $e');
+      if (!mounted) return;
+      setState(() {
+        _costError = 'JSONL 파일을 읽을 수 없습니다.';
+        _isCostLoading = false;
+      });
+    }
+  }
+
   Future<void> _handleLogout() async {
     await _oauth.logout();
     setState(() {
       _usageData = null;
       _userEmail = null;
       _subscriptionType = null;
-      _showSettings = false;
+      _currentScreen = _AppScreen.home;
     });
   }
 
@@ -205,33 +240,52 @@ class _ClaudeMeterAppState extends State<ClaudeMeterApp> with WindowListener {
   Future<void> _handleConfigSave(AppConfig newConfig) async {
     await _config.saveConfig(newConfig);
     _startAutoRefresh();
-    setState(() => _showSettings = false);
+    setState(() => _currentScreen = _AppScreen.home);
   }
 
   @override
   Widget build(BuildContext context) {
-    final body = _showSettings
-        ? SettingsScreen(
-            config: _config.config,
-            isLoggedIn: _oauth.hasCredentials,
-            onSave: _handleConfigSave,
-            onLogout: _handleLogout,
-            onClose: () => setState(() => _showSettings = false),
-          )
-        : HomeScreen(
-            isLoggedIn: _oauth.hasCredentials,
-            isLoading: _isLoading,
-            loginError: _loginError,
-            usageError: _usageError,
-            userEmail: _userEmail,
-            subscriptionType: _subscriptionType,
-            usageData: _usageData,
-            config: _config.config,
-            onLogin: _handleLogin,
-            onRefresh: _refreshUsage,
-            onSettings: () => setState(() => _showSettings = true),
-            onQuit: _handleQuit,
-          );
+    late final Widget body;
+    switch (_currentScreen) {
+      case _AppScreen.settings:
+        body = SettingsScreen(
+          config: _config.config,
+          isLoggedIn: _oauth.hasCredentials,
+          onSave: _handleConfigSave,
+          onLogout: _handleLogout,
+          onClose: () => setState(() => _currentScreen = _AppScreen.home),
+        );
+        break;
+      case _AppScreen.cost:
+        body = CostScreen(
+          costData: _costData,
+          isLoading: _isCostLoading,
+          error: _costError,
+          onRefresh: _refreshCosts,
+          onClose: () => setState(() => _currentScreen = _AppScreen.home),
+        );
+        break;
+      case _AppScreen.home:
+        body = HomeScreen(
+          isLoggedIn: _oauth.hasCredentials,
+          isLoading: _isLoading,
+          loginError: _loginError,
+          usageError: _usageError,
+          userEmail: _userEmail,
+          subscriptionType: _subscriptionType,
+          usageData: _usageData,
+          config: _config.config,
+          onLogin: _handleLogin,
+          onRefresh: _refreshUsage,
+          onSettings: () => setState(() => _currentScreen = _AppScreen.settings),
+          onCost: () {
+            setState(() => _currentScreen = _AppScreen.cost);
+            if (_costData == null) _refreshCosts();
+          },
+          onQuit: _handleQuit,
+        );
+        break;
+    }
 
     return MaterialApp(
       title: 'Claude Meter',

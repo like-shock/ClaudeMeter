@@ -9,6 +9,7 @@ typedef TrayCallback = void Function();
 class TrayService with TrayListener {
   TrayCallback? onToggle;
   TrayCallback? onRefresh;
+  TrayCallback? onCost;
   TrayCallback? onSettings;
   TrayCallback? onQuit;
 
@@ -40,6 +41,10 @@ class TrayService with TrayListener {
         MenuItem(
           key: 'refresh',
           label: '새로고침',
+        ),
+        MenuItem(
+          key: 'cost',
+          label: 'API 사용 요금',
         ),
         MenuItem.separator(),
         MenuItem(
@@ -81,6 +86,9 @@ class TrayService with TrayListener {
         break;
       case 'refresh':
         onRefresh?.call();
+        break;
+      case 'cost':
+        onCost?.call();
         break;
       case 'settings':
         onSettings?.call();
