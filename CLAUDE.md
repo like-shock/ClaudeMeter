@@ -7,8 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ClaudeMeter — Desktop system tray application with dual-mode UI for Claude AI monitoring. Built with Flutter (Dart), supports macOS and Windows. UI language is Korean.
 
 **두 가지 모드:**
-- **사용량 모니터** (Plan 모드): OAuth 2.0 + PKCE 인증, 3-tier 사용률 표시 (280x400)
-- **비용 추적기** (API 모드): 로컬 JSONL 파싱, Current/History 탭 (400x600)
+- **Plan Mode**: OAuth 2.0 + PKCE 인증, 3-tier 사용률 표시 (280x400)
+- **API Mode**: 로컬 JSONL 파싱, Current/History 탭 (400x600)
 
 첫 실행 시 모드 선택 → 재시작 시 선택 모드 직접 진입. 모드 변경 버튼으로 전환 가능.
 

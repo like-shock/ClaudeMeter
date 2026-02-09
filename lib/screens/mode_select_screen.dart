@@ -37,7 +37,7 @@ class ModeSelectScreen extends StatelessWidget {
           _buildModeCard(
             icon: Icons.timer_outlined,
             iconColor: const Color(0xFF007AFF),
-            title: '사용량 모니터',
+            title: 'Plan Mode',
             description: 'OAuth 구독 사용률 추적',
             onTap: () => onModeSelected(AppMode.plan),
           ),
@@ -45,7 +45,7 @@ class ModeSelectScreen extends StatelessWidget {
           _buildModeCard(
             icon: Icons.attach_money,
             iconColor: const Color(0xFF34C759),
-            title: '비용 추적기',
+            title: 'API Mode',
             description: 'Claude Code API 비용 추적',
             onTap: () => onModeSelected(AppMode.api),
           ),

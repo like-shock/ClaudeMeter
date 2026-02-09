@@ -80,7 +80,7 @@ class _ApiHomeScreenState extends State<ApiHomeScreen>
       child: Row(
         children: [
           const Text(
-            '비용 추적기',
+            'API Mode',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
