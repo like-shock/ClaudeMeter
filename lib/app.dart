@@ -13,7 +13,8 @@ import 'services/tray_service.dart';
 import 'services/cost_tracking_service.dart';
 import 'screens/home_screen.dart';
 import 'screens/settings_screen.dart';
-import 'screens/cost_screen.dart';
+import 'screens/mode_select_screen.dart';
+import 'screens/api_home_screen.dart';
 import 'utils/platform_window.dart';
 
 /// Main application widget.
@@ -37,10 +38,10 @@ class ClaudeMeterApp extends StatefulWidget {
   State<ClaudeMeterApp> createState() => _ClaudeMeterAppState();
 }
 
-enum _AppScreen { home, settings, cost }
+enum _AppScreen { modeSelect, home, settings, apiHome }
 
 class _ClaudeMeterAppState extends State<ClaudeMeterApp> with WindowListener {
-  _AppScreen _currentScreen = _AppScreen.home;
+  _AppScreen _currentScreen = _AppScreen.modeSelect;
   bool _isLoading = false;
   String? _loginError;
   String? _usageError;
@@ -74,13 +75,79 @@ class _ClaudeMeterAppState extends State<ClaudeMeterApp> with WindowListener {
     await _oauth.loadCredentials();
     await _config.loadConfig();
 
+    final mode = _config.config.appMode;
+
+    if (mode == null) {
+      // First launch — show mode selection
+      setState(() => _currentScreen = _AppScreen.modeSelect);
+    } else if (mode == AppMode.plan) {
+      await _enterPlanMode();
+    } else if (mode == AppMode.api) {
+      await _enterApiMode();
+    }
+
+    // Update tray menu for current mode
+    await widget.trayService.updateMenuForMode(mode);
+
+    // Wire tray callbacks
+    widget.trayService.onRefresh = _handleTrayRefresh;
+    widget.trayService.onSettings = () {
+      if (_config.config.appMode == AppMode.plan) {
+        setState(() => _currentScreen = _AppScreen.settings);
+      }
+    };
+    widget.trayService.onModeChange = _handleModeChange;
+
+    setState(() {});
+  }
+
+  Future<void> _enterPlanMode() async {
+    await resizeWindow(planWindowSize);
     if (_oauth.hasCredentials) {
       await _fetchProfile();
       await _refreshUsage();
     }
-
     _startAutoRefresh();
-    setState(() {});
+    if (mounted) setState(() => _currentScreen = _AppScreen.home);
+  }
+
+  Future<void> _enterApiMode() async {
+    await resizeWindow(apiWindowSize);
+    _refreshCosts();
+    _startCostAutoRefresh();
+    if (mounted) setState(() => _currentScreen = _AppScreen.apiHome);
+  }
+
+  Future<void> _handleModeSelect(AppMode mode) async {
+    // Save mode to config
+    final newConfig = _config.config.copyWith(appMode: mode);
+    await _config.saveConfig(newConfig);
+    await widget.trayService.updateMenuForMode(mode);
+
+    if (mode == AppMode.plan) {
+      await _enterPlanMode();
+    } else {
+      await _enterApiMode();
+    }
+  }
+
+  /// Switch back to mode selection (from either mode).
+  Future<void> _handleModeChange() async {
+    _refreshTimer?.cancel();
+    final newConfig = _config.config.copyWith(clearAppMode: true);
+    await _config.saveConfig(newConfig);
+    await widget.trayService.updateMenuForMode(null);
+    await resizeWindow(planWindowSize);
+    if (mounted) setState(() => _currentScreen = _AppScreen.modeSelect);
+  }
+
+  void _handleTrayRefresh() {
+    final mode = _config.config.appMode;
+    if (mode == AppMode.plan) {
+      _refreshUsage();
+    } else if (mode == AppMode.api) {
+      _refreshCosts();
+    }
   }
 
   Future<void> _fetchProfile() async {
@@ -104,11 +171,14 @@ class _ClaudeMeterAppState extends State<ClaudeMeterApp> with WindowListener {
 
   /// Toggle window visibility (Windows only).
   Future<void> _toggleWindowWindows() async {
+    final currentSize = _config.config.appMode == AppMode.api
+        ? apiWindowSize
+        : planWindowSize;
     if (_windowVisible) {
       await windowManager.hide();
       _windowVisible = false;
     } else {
-      await positionWindowNearTray();
+      await positionWindowNearTray(windowSize: currentSize);
       await windowManager.show();
       await windowManager.focus();
       _windowVisible = true;
@@ -134,6 +204,16 @@ class _ClaudeMeterAppState extends State<ClaudeMeterApp> with WindowListener {
     });
   }
 
+  void _startCostAutoRefresh() {
+    _refreshTimer?.cancel();
+    final interval = Duration(seconds: _config.config.refreshIntervalSeconds);
+    _refreshTimer = Timer.periodic(interval, (_) {
+      if (!_isCostLoading) {
+        _refreshCosts();
+      }
+    });
+  }
+
   Future<void> _refreshUsage() async {
     if (!_oauth.hasCredentials) return;
 
@@ -151,10 +231,10 @@ class _ClaudeMeterAppState extends State<ClaudeMeterApp> with WindowListener {
     } catch (e) {
       if (kDebugMode) debugPrint('Usage refresh error: $e');
       if (!mounted) return;
-      
+
       final errorMsg = e.toString();
       String? displayError;
-      
+
       if (errorMsg.contains('auth_expired') || errorMsg.contains('401')) {
         displayError = '인증이 만료되었습니다. 다시 로그인해주세요.';
       } else if (errorMsg.contains('403')) {
@@ -162,7 +242,7 @@ class _ClaudeMeterAppState extends State<ClaudeMeterApp> with WindowListener {
       } else if (errorMsg.contains('API error')) {
         displayError = 'API 오류가 발생했습니다.';
       }
-      
+
       setState(() {
         _usageError = displayError;
         _isLoading = false;
@@ -238,7 +318,9 @@ class _ClaudeMeterAppState extends State<ClaudeMeterApp> with WindowListener {
   }
 
   Future<void> _handleConfigSave(AppConfig newConfig) async {
-    await _config.saveConfig(newConfig);
+    // Preserve appMode when saving settings
+    final merged = newConfig.copyWith(appMode: _config.config.appMode);
+    await _config.saveConfig(merged);
     _startAutoRefresh();
     setState(() => _currentScreen = _AppScreen.home);
   }
@@ -247,6 +329,11 @@ class _ClaudeMeterAppState extends State<ClaudeMeterApp> with WindowListener {
   Widget build(BuildContext context) {
     late final Widget body;
     switch (_currentScreen) {
+      case _AppScreen.modeSelect:
+        body = ModeSelectScreen(
+          onModeSelected: _handleModeSelect,
+        );
+        break;
       case _AppScreen.settings:
         body = SettingsScreen(
           config: _config.config,
@@ -256,13 +343,14 @@ class _ClaudeMeterAppState extends State<ClaudeMeterApp> with WindowListener {
           onClose: () => setState(() => _currentScreen = _AppScreen.home),
         );
         break;
-      case _AppScreen.cost:
-        body = CostScreen(
+      case _AppScreen.apiHome:
+        body = ApiHomeScreen(
           costData: _costData,
           isLoading: _isCostLoading,
           error: _costError,
           onRefresh: _refreshCosts,
-          onClose: () => setState(() => _currentScreen = _AppScreen.home),
+          onModeChange: _handleModeChange,
+          onQuit: _handleQuit,
         );
         break;
       case _AppScreen.home:
@@ -277,12 +365,10 @@ class _ClaudeMeterAppState extends State<ClaudeMeterApp> with WindowListener {
           config: _config.config,
           onLogin: _handleLogin,
           onRefresh: _refreshUsage,
-          onSettings: () => setState(() => _currentScreen = _AppScreen.settings),
-          onCost: () {
-            setState(() => _currentScreen = _AppScreen.cost);
-            if (_costData == null) _refreshCosts();
-          },
+          onSettings: () =>
+              setState(() => _currentScreen = _AppScreen.settings),
           onQuit: _handleQuit,
+          onModeChange: _handleModeChange,
         );
         break;
     }

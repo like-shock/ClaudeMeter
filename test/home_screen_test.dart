@@ -31,7 +31,6 @@ void main() {
             onLogin: () {},
             onRefresh: () => refreshCalled = true,
             onSettings: () => settingsCalled = true,
-            onCost: () {},
             onQuit: () => quitCalled = true,
           ),
         ),

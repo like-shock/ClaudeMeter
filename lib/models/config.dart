@@ -1,15 +1,20 @@
+/// Application mode: plan (OAuth usage monitoring) or api (JSONL cost tracking).
+enum AppMode { plan, api }
+
 /// Application configuration.
 class AppConfig {
   final int refreshIntervalSeconds;
   final bool showFiveHour;
   final bool showSevenDay;
   final bool showSonnet;
+  final AppMode? appMode;
 
   const AppConfig({
     this.refreshIntervalSeconds = 60,
     this.showFiveHour = true,
     this.showSevenDay = true,
     this.showSonnet = true,
+    this.appMode,
   });
 
   /// Parse from JSON with defensive type checking.
@@ -18,6 +23,7 @@ class AppConfig {
     final fiveHourRaw = json['showFiveHour'];
     final sevenDayRaw = json['showSevenDay'];
     final sonnetRaw = json['showSonnet'];
+    final modeRaw = json['appMode'];
 
     int refreshInterval = 60;
     if (refreshRaw is int) {
@@ -25,11 +31,17 @@ class AppConfig {
       refreshInterval = refreshRaw.clamp(10, 300);
     }
 
+    AppMode? appMode;
+    if (modeRaw is String) {
+      appMode = AppMode.values.where((e) => e.name == modeRaw).firstOrNull;
+    }
+
     return AppConfig(
       refreshIntervalSeconds: refreshInterval,
       showFiveHour: fiveHourRaw is bool ? fiveHourRaw : true,
       showSevenDay: sevenDayRaw is bool ? sevenDayRaw : true,
       showSonnet: sonnetRaw is bool ? sonnetRaw : true,
+      appMode: appMode,
     );
   }
 
@@ -39,6 +51,7 @@ class AppConfig {
       'showFiveHour': showFiveHour,
       'showSevenDay': showSevenDay,
       'showSonnet': showSonnet,
+      'appMode': appMode?.name,
     };
   }
 
@@ -51,6 +64,8 @@ class AppConfig {
     bool? showFiveHour,
     bool? showSevenDay,
     bool? showSonnet,
+    AppMode? appMode,
+    bool clearAppMode = false,
   }) {
     return AppConfig(
       refreshIntervalSeconds:
@@ -58,6 +73,7 @@ class AppConfig {
       showFiveHour: showFiveHour ?? this.showFiveHour,
       showSevenDay: showSevenDay ?? this.showSevenDay,
       showSonnet: showSonnet ?? this.showSonnet,
+      appMode: clearAppMode ? null : (appMode ?? this.appMode),
     );
   }
 }

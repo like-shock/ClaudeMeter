@@ -1,6 +1,7 @@
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:tray_manager/tray_manager.dart';
+import '../models/config.dart';
 
 /// Callbacks for tray menu actions.
 typedef TrayCallback = void Function();
@@ -9,8 +10,8 @@ typedef TrayCallback = void Function();
 class TrayService with TrayListener {
   TrayCallback? onToggle;
   TrayCallback? onRefresh;
-  TrayCallback? onCost;
   TrayCallback? onSettings;
+  TrayCallback? onModeChange;
   TrayCallback? onQuit;
 
   /// Initialize the system tray.
@@ -31,36 +32,49 @@ class TrayService with TrayListener {
     }
 
     await trayManager.setToolTip('Claude Meter');
-
-    final menu = Menu(
-      items: [
-        MenuItem(
-          key: 'toggle',
-          label: '사용량 보기',
-        ),
-        MenuItem(
-          key: 'refresh',
-          label: '새로고침',
-        ),
-        MenuItem(
-          key: 'cost',
-          label: 'API 사용 요금',
-        ),
-        MenuItem.separator(),
-        MenuItem(
-          key: 'settings',
-          label: '설정',
-        ),
-        MenuItem.separator(),
-        MenuItem(
-          key: 'quit',
-          label: '종료',
-        ),
-      ],
-    );
-
-    await trayManager.setContextMenu(menu);
     trayManager.addListener(this);
+
+    // Set default menu (will be replaced by updateMenuForMode)
+    await _setMenu(null);
+  }
+
+  /// Update the tray context menu based on the active app mode.
+  Future<void> updateMenuForMode(AppMode? mode) async {
+    await _setMenu(mode);
+  }
+
+  Future<void> _setMenu(AppMode? mode) async {
+    final List<MenuItem> items;
+
+    switch (mode) {
+      case AppMode.plan:
+        items = [
+          MenuItem(key: 'toggle', label: '사용량 보기'),
+          MenuItem(key: 'refresh', label: '새로고침'),
+          MenuItem.separator(),
+          MenuItem(key: 'settings', label: '설정'),
+          MenuItem(key: 'mode_change', label: '모드 변경'),
+          MenuItem.separator(),
+          MenuItem(key: 'quit', label: '종료'),
+        ];
+      case AppMode.api:
+        items = [
+          MenuItem(key: 'toggle', label: '비용 보기'),
+          MenuItem(key: 'refresh', label: '새로고침'),
+          MenuItem.separator(),
+          MenuItem(key: 'mode_change', label: '모드 변경'),
+          MenuItem.separator(),
+          MenuItem(key: 'quit', label: '종료'),
+        ];
+      case null:
+        items = [
+          MenuItem(key: 'toggle', label: '열기'),
+          MenuItem.separator(),
+          MenuItem(key: 'quit', label: '종료'),
+        ];
+    }
+
+    await trayManager.setContextMenu(Menu(items: items));
   }
 
   /// Dispose the tray service.
@@ -87,11 +101,11 @@ class TrayService with TrayListener {
       case 'refresh':
         onRefresh?.call();
         break;
-      case 'cost':
-        onCost?.call();
-        break;
       case 'settings':
         onSettings?.call();
+        break;
+      case 'mode_change':
+        onModeChange?.call();
         break;
       case 'quit':
         onQuit?.call();

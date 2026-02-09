@@ -7,12 +7,27 @@ import '../utils/pricing.dart';
 /// Service that parses local JSONL files from Claude Code sessions
 /// to calculate API usage costs.
 class CostTrackingService {
-  /// Get the Claude projects directory path.
-  static String get _claudeProjectsPath {
+  /// Get the real user home directory, resolving macOS sandbox redirection.
+  /// In sandbox, HOME is redirected to the app container path;
+  /// we extract the real home to read Claude CLI files.
+  static String get _realHomePath {
     final home = Platform.environment['HOME'] ??
         Platform.environment['USERPROFILE'] ??
         '';
-    return '$home/.claude/projects';
+    if (Platform.isMacOS) {
+      final containerMatch =
+          RegExp(r'^(/Users/[^/]+)/Library/Containers/')
+              .firstMatch(home);
+      if (containerMatch != null) {
+        return containerMatch.group(1)!;
+      }
+    }
+    return home;
+  }
+
+  /// Get the Claude projects directory path.
+  static String get _claudeProjectsPath {
+    return '$_realHomePath/.claude/projects';
   }
 
   /// Scan all JSONL files and compute cost data.
@@ -61,10 +76,11 @@ class CostTrackingService {
       }
     }
 
-    // Build model breakdown
+    // Build model breakdown (skip models with no pricing match)
     final modelBreakdown = <ModelCost>[];
     double totalCost = 0;
     for (final entry in modelTokens.entries) {
+      if (PricingTable.findPricing(entry.key) == null) continue;
       final cost = PricingTable.calculateCost(entry.key, entry.value);
       totalCost += cost;
       modelBreakdown.add(ModelCost(
@@ -88,6 +104,8 @@ class CostTrackingService {
         date: DateTime.parse(dayKey),
         cost: acc.cost,
         messageCount: acc.messageCount,
+        totalTokens: acc.totalTokens,
+        modelTokens: Map.unmodifiable(acc.modelTokens),
       );
       dailyList.add(dayCost);
       if (dayKey == today) {
@@ -153,6 +171,9 @@ class CostTrackingService {
       final model = message['model'];
       if (model is! String || model.isEmpty) continue;
 
+      // Skip synthetic entries (internal error messages, not real API calls)
+      if (model.startsWith('<')) continue;
+
       // Track session
       final sessionId = json['sessionId'];
       if (sessionId is String) sessionIds.add(sessionId);
@@ -180,6 +201,9 @@ class CostTrackingService {
         final acc = dailyCosts[dayKey] ?? _DailyAccumulator();
         acc.cost += cost;
         acc.messageCount += 1;
+        acc.totalTokens += tokenUsage.totalTokens;
+        acc.modelTokens[model] =
+            (acc.modelTokens[model] ?? const TokenUsage()) + tokenUsage;
         dailyCosts[dayKey] = acc;
       }
     }
@@ -194,4 +218,6 @@ class CostTrackingService {
 class _DailyAccumulator {
   double cost = 0;
   int messageCount = 0;
+  int totalTokens = 0;
+  final Map<String, TokenUsage> modelTokens = {};
 }

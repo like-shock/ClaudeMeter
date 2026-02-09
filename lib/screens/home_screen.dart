@@ -17,8 +17,8 @@ class HomeScreen extends StatelessWidget {
   final VoidCallback onLogin;
   final VoidCallback onRefresh;
   final VoidCallback onSettings;
-  final VoidCallback onCost;
   final VoidCallback onQuit;
+  final VoidCallback? onModeChange;
 
   const HomeScreen({
     super.key,
@@ -33,8 +33,8 @@ class HomeScreen extends StatelessWidget {
     required this.onLogin,
     required this.onRefresh,
     required this.onSettings,
-    required this.onCost,
     required this.onQuit,
+    this.onModeChange,
   });
 
   @override
@@ -85,14 +85,16 @@ class HomeScreen extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           _buildIconButton(
-            icon: Icons.attach_money,
-            onTap: onCost,
-          ),
-          const SizedBox(width: 8),
-          _buildIconButton(
             icon: Icons.settings,
             onTap: onSettings,
           ),
+          if (onModeChange != null) ...[
+            const SizedBox(width: 8),
+            _buildIconButton(
+              icon: Icons.swap_horiz,
+              onTap: onModeChange,
+            ),
+          ],
           const SizedBox(width: 8),
           _buildIconButton(
             icon: Icons.power_settings_new,

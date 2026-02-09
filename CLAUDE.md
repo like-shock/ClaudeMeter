@@ -4,7 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-ClaudeMeter — Desktop system tray application that monitors Claude AI API usage in real-time. Built with Flutter (Dart), it authenticates via OAuth 2.0 with PKCE and displays usage statistics across three tiers (5-hour, 7-day, 7-day Sonnet). Also provides local JSONL-based API cost tracking by parsing Claude Code session files. Supports macOS and Windows. UI language is Korean.
+ClaudeMeter — Desktop system tray application with dual-mode UI for Claude AI monitoring. Built with Flutter (Dart), supports macOS and Windows. UI language is Korean.
+
+**두 가지 모드:**
+- **사용량 모니터** (Plan 모드): OAuth 2.0 + PKCE 인증, 3-tier 사용률 표시 (280x400)
+- **비용 추적기** (API 모드): 로컬 JSONL 파싱, Current/History 탭 (400x600)
+
+첫 실행 시 모드 선택 → 재시작 시 선택 모드 직접 진입. 모드 변경 버튼으로 전환 가능.
 
 ## Build & Development Commands
 
@@ -23,7 +29,7 @@ flutter build windows --release
 # Build release (Windows 배포용)
 powershell scripts/build_release_win.ps1
 
-# Run all tests (114 tests across 11 files)
+# Run all tests (128 tests across 11 files)
 flutter test
 
 # Run a single test file
@@ -47,22 +53,33 @@ flutter pub get
 Services are instantiated in `main()` and injected into `ClaudeMeterApp`:
 ```
 main() → [Windows: configureWindowsWindow()] → create services → run app
-  macOS: AppDelegate creates NSPanel (280x400)
-  Windows: window_manager configures frameless window (280x400)
+  macOS: AppDelegate creates NSPanel (280x400 initial)
+  Windows: window_manager configures frameless window (280x400 initial)
+```
+
+### Dual-mode routing (`app.dart`)
+```
+_init() → loadConfig()
+  appMode == null  → ModeSelectScreen (280x400)
+  appMode == plan  → resizeWindow(280x400) → HomeScreen + auto-refresh usage
+  appMode == api   → resizeWindow(400x600) → ApiHomeScreen + auto-refresh costs
 ```
 
 ### Data flow
 ```
+[Plan 모드]
 OAuthService (AES-256 encrypted file ~/.claude/.credentials.json)
     → UsageService (Bearer token → GET /api/oauth/usage)
     → UsageData model → HomeScreen (UsageBar widgets)
 
+[API 모드]
 CostTrackingService (local JSONL parsing from ~/.claude/projects/)
     → PricingTable (model-specific rates) → CostData model
-    → CostScreen (CostBar widgets, daily/total summaries)
+    → ApiHomeScreen (Current tab: 기간별 비용/토큰, 모델별 breakdown)
+    → ApiHomeScreen (History tab: 월별 네비게이션, 일별 비용/토큰)
 
-ConfigService (SharedPreferences) ↔ SettingsScreen
-TrayService (system tray menu) ↔ AppState (window toggle/refresh/cost)
+ConfigService (SharedPreferences) ↔ SettingsScreen (Plan 모드 전용)
+TrayService (system tray menu) ↔ AppState (모드별 메뉴 구성)
 ```
 
 ### OAuth PKCE flow
@@ -85,31 +102,32 @@ scripts/
 └── build_release_win.ps1  # Windows 릴리스 빌드
 lib/
 ├── main.dart              # Entry point, window/tray init, service wiring
-├── app.dart               # Root StatefulWidget, global state, auto-refresh timer, WindowListener (Win)
-├── models/                # Immutable data classes
-│   ├── config.dart        # AppConfig (refresh interval, display toggles)
-│   ├── cost_data.dart     # CostData, ModelCost, DailyCost (JSONL cost tracking)
+├── app.dart               # Root StatefulWidget, dual-mode routing, window resize, WindowListener
+├── models/
+│   ├── config.dart        # AppMode enum, AppConfig (appMode, refresh interval, display toggles)
+│   ├── cost_data.dart     # CostData, ModelCost, DailyCost (with totalTokens)
 │   ├── credentials.dart   # OAuth tokens (access, refresh, expiry)
 │   └── usage_data.dart    # UsageTier + UsageData (utilization, reset time)
-├── services/              # Business logic
-│   ├── cost_tracking_service.dart # JSONL parsing from ~/.claude/projects/, cost calculation
+├── services/
+│   ├── cost_tracking_service.dart # JSONL parsing, daily token accumulation, cost calculation
 │   ├── oauth_service.dart # OAuth 2.0 + PKCE, token management, AES-256 encrypted file storage
 │   ├── usage_service.dart # API usage data fetching
 │   ├── config_service.dart# SharedPreferences persistence
-│   └── tray_service.dart  # System tray icon and menu (platform-aware)
-├── screens/               # Full-page layouts
-│   ├── cost_screen.dart   # API cost display (today/total, model breakdown, daily)
-│   ├── home_screen.dart   # Usage display or login view
-│   └── settings_screen.dart # Config UI (display toggles, interval, logout)
-├── widgets/               # Reusable components
-│   ├── cost_bar.dart      # Model-colored progress bar for cost display
+│   └── tray_service.dart  # System tray icon, mode-aware context menu
+├── screens/
+│   ├── mode_select_screen.dart # First-launch mode selection (Plan/API)
+│   ├── api_home_screen.dart    # API mode: Current tab (period costs) + History tab (monthly)
+│   ├── home_screen.dart        # Plan mode: usage display or login view
+│   └── settings_screen.dart    # Plan mode: config UI (display toggles, interval, logout)
+├── widgets/
+│   ├── cost_bar.dart      # Model-colored progress bar with optional percentage
 │   ├── login_view.dart    # One-click OAuth login (browser → auto callback)
 │   └── usage_bar.dart     # Color-coded progress bar with tier icon
 └── utils/
     ├── constants.dart     # API endpoints, OAuth client ID, timeouts, encryption salt
     ├── pkce.dart          # PKCE verifier/challenge/state generation
     ├── pricing.dart       # Model pricing table (USD/MTok), TokenUsage, cost calculation
-    └── platform_window.dart # Windows window configuration (window_manager)
+    └── platform_window.dart # Window sizing (planWindowSize/apiWindowSize), resizeWindow(), MethodChannel
 ```
 
 ## UI Theme
@@ -117,7 +135,8 @@ lib/
 라이트 모드 팝업 스타일:
 - **macOS 배경**: NSVisualEffectView (.menu material, 95% 불투명, behindWindow blending)
 - **Windows 배경**: 반투명 솔리드 (`Color(0xF0F2F2F7)`), 둥근 모서리 10px
-- **윈도우**: Borderless, 280x400, 둥근 모서리 10px, Flutter 배경 transparent
+- **Plan 모드 윈도우**: 280x400, borderless, 둥근 모서리 10px
+- **API 모드 윈도우**: 400x600, borderless, 둥근 모서리 10px
 - **사용량 바**: Green `34C759` (<50%) → Yellow `FFCC00` (50-70%) → Orange `FF9500` (70-90%) → Red `FF3B30` (>=90%)
 - **티어 아이콘**: timer (5시간), calendar (주간), auto_awesome (Sonnet)
 - **비용 바 색상**: Purple `AF52DE` (Opus) / Blue `007AFF` (Sonnet) / Green `34C759` (Haiku)
@@ -129,8 +148,18 @@ lib/
 - **토큰 종류**: input, cache_creation (5m/1h ephemeral), cache_read, output
 - **가격표**: `pricing.dart`에 모델별 USD/MTok 하드코딩 (2026-02 기준)
 - **비용 공식**: `Σ(tokens × rate) / 1,000,000` (모델별)
-- **화면 구성**: 오늘 요금, 전체 누적, 모델별 비용, 최근 7일 일별
+- **일별 집계**: 비용, 메시지 수, 전체 토큰 수 (DailyCost.totalTokens)
+- **화면 구성** (API 모드):
+  - **현재 탭**: 오늘/이번 주/이번 달 비용+토큰, 모델별 사용 요금
+  - **기록 탭**: 월 네비게이터, 월 합계/일 평균/최대, 일별 비용+토큰
 - **macOS 접근**: `com.apple.security.temporary-exception.files.absolute-path.read-only` entitlement로 `/Users/` 읽기 허용
+- **사양 문서**: `docs/claude-apicost-spec.md` 참조
+
+## Window Resize
+
+- macOS: `MethodChannel('com.claudemeter/window')` → `setWindowSize` handler in AppDelegate.swift
+- Windows: `window_manager.setSize()` + `setMinimumSize()` + `setMaximumSize()`
+- 모드 전환 시 `resizeWindow()` (`platform_window.dart`) 호출
 
 ## API Endpoints
 
@@ -156,7 +185,7 @@ lib/
 - **앱 샌드박스 활성화** (`com.apple.security.app-sandbox: true`)
   - entitlements: `network.client` (API 통신), `network.server` (OAuth 콜백 서버)
   - `$HOME`이 앱 컨테이너 (`~/Library/Containers/<bundle-id>/Data/`)로 리다이렉트됨
-- AppDelegate.swift: NSPanel + NSVisualEffectView
+- AppDelegate.swift: NSPanel + NSVisualEffectView + MethodChannel for window resize
 - `panel.contentViewController` 사용 금지 — `contentView`를 덮어씀
 - Flutter 투명 배경: `DispatchQueue.main.async`로 CAMetalLayer `isOpaque = false` 설정 필요
 - 중복 실행 방지: `NSRunningApplication` 체크

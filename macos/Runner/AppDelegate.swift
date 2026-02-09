@@ -68,11 +68,21 @@ class StatusBarController {
     
     func hidePanel() {
         panel.orderOut(nil)
-        
+
         if let monitor = eventMonitor {
             NSEvent.removeMonitor(monitor)
             eventMonitor = nil
         }
+    }
+
+    /// Reposition the panel under the tray icon (used after resize).
+    func repositionPanel() {
+        guard panel.isVisible, let button = statusItem.button else { return }
+        let buttonRect = button.window?.convertToScreen(button.convert(button.bounds, to: nil)) ?? .zero
+        let panelSize = panel.frame.size
+        let x = buttonRect.midX - panelSize.width / 2
+        let y = buttonRect.minY - panelSize.height - 5
+        panel.setFrameOrigin(NSPoint(x: x, y: y))
     }
 }
 
@@ -138,8 +148,32 @@ class AppDelegate: FlutterAppDelegate {
             self.makeFlutterViewTransparent(flutterView)
         }
         
+        // MethodChannel for window resize from Flutter
+        let windowChannel = FlutterMethodChannel(
+            name: "com.claudemeter/window",
+            binaryMessenger: flutterViewController.engine.registrar(forPlugin: "window").messenger
+        )
+        windowChannel.setMethodCallHandler { [weak self] (call, result) in
+            guard let self = self else { return }
+            switch call.method {
+            case "setWindowSize":
+                if let args = call.arguments as? [String: Double],
+                   let width = args["width"],
+                   let height = args["height"] {
+                    self.panel.setContentSize(NSSize(width: width, height: height))
+                    // Reposition under tray icon
+                    self.statusBarController?.repositionPanel()
+                    result(nil)
+                } else {
+                    result(FlutterError(code: "INVALID_ARGS", message: "width and height required", details: nil))
+                }
+            default:
+                result(FlutterMethodNotImplemented)
+            }
+        }
+
         statusBarController = StatusBarController(panel)
-        
+
         window.close()
         NSApp.setActivationPolicy(.accessory)
     }

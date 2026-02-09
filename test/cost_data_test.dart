@@ -44,6 +44,26 @@ void main() {
       expect(daily.date.day, 9);
       expect(daily.cost, 1.50);
       expect(daily.messageCount, 42);
+      expect(daily.totalTokens, 0);
+    });
+
+    test('stores totalTokens', () {
+      final daily = DailyCost(
+        date: DateTime(2026, 2, 9),
+        cost: 2.50,
+        messageCount: 10,
+        totalTokens: 150000,
+      );
+      expect(daily.totalTokens, 150000);
+    });
+
+    test('totalTokens defaults to 0', () {
+      final daily = DailyCost(
+        date: DateTime(2026, 2, 9),
+        cost: 0,
+        messageCount: 0,
+      );
+      expect(daily.totalTokens, 0);
     });
   });
 }

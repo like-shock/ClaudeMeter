@@ -57,10 +57,16 @@ class DailyCost {
   final DateTime date;
   final double cost;
   final int messageCount;
+  final int totalTokens;
+
+  /// Per-model token usage for this day.
+  final Map<String, TokenUsage> modelTokens;
 
   const DailyCost({
     required this.date,
     required this.cost,
     required this.messageCount,
+    this.totalTokens = 0,
+    this.modelTokens = const {},
   });
 }

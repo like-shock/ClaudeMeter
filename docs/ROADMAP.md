@@ -1,68 +1,35 @@
-# Claude Meter v2.0 - Windows 플랫폼 추가 로드맵
+# ClaudeMeter v3.0 Roadmap
 
-> v1.0 macOS 완료 버전: [docs/archive/ROADMAP_v1.0_macos.md](archive/ROADMAP_v1.0_macos.md)
+## v3.0 — 듀얼 모드 UI (현재)
 
----
+### 완료
 
-## v1.0 macOS (완료)
+- [x] `AppMode` enum (plan / api) 추가
+- [x] `AppConfig.appMode` 필드 (null = 미선택, plan, api)
+- [x] 모드 선택 화면 (`mode_select_screen.dart`)
+- [x] API 모드 메인 화면 (`api_home_screen.dart`) — Current/History 탭
+- [x] macOS MethodChannel 윈도우 리사이즈
+- [x] Windows window_manager 리사이즈
+- [x] 앱 라우팅 모드 분기 (`app.dart`)
+- [x] 트레이 메뉴 모드별 구성
+- [x] `DailyCost.totalTokens` 추가
+- [x] `CostTrackingService` 일별 토큰 누적
+- [x] HomeScreen에서 `onCost` 제거, 모드 변경 버튼 추가
+- [x] `cost_screen.dart` 삭제 (→ `api_home_screen.dart`)
+- [x] 테스트 업데이트 (128 tests passing)
+- [x] 문서 아카이브 및 v3.0 PRD/ROADMAP 작성
 
-| Phase | 상태 |
-|-------|------|
-| 1. 프로젝트 초기화 | ✅ 완료 |
-| 2. 모델 정의 | ✅ 완료 |
-| 3. 서비스 구현 | ✅ 완료 |
-| 4. UI 위젯 | ✅ 완료 |
-| 5. 화면 구현 | ✅ 완료 |
-| 6. 앱 통합 | ✅ 완료 |
-| 7. 품질 & 보안 | ✅ 완료 (89개 테스트) |
+## v3.1 — 개선 예정
 
----
+- [ ] API 모드: 프로젝트별 비용 분류
+- [ ] API 모드: 비용 예산 설정 및 알림
+- [ ] API 모드: CSV/JSON 내보내기
+- [ ] Plan 모드: 사용률 기반 알림 (임계치 초과 시)
+- [ ] 양쪽 모드 동시 지원 (탭 전환)
+- [ ] 다크 모드 지원
 
-## v2.0 Windows 플랫폼 추가
+## v4.0 — 향후 계획
 
-### Phase 0: 문서 정리 ✅
-- [x] 기존 ROADMAP/PRD → `docs/archive/` 아카이브
-- [x] v2.0 로드맵 생성
-
-### Phase 1: Windows 프로젝트 스캐폴드 ✅
-- [x] `flutter create --platforms=windows .` 실행
-- [x] `windows/runner/main.cpp`에 중복 실행 방지 Mutex 추가
-- [x] `pubspec.yaml` description 변경, 에셋 추가
-
-### Phase 2: Critical Dart 코드 수정 (3개 블로커) ✅
-- [x] `oauth_service.dart` — 자격증명 경로 `USERPROFILE` 폴백
-- [x] `oauth_service.dart` — chmod FFI 호출 `Platform.isWindows` 가드
-- [x] `constants.dart` — User-Agent 플랫폼 분기
-
-### Phase 3: 트레이 아이콘 & 윈도우 관리 ✅
-- [x] `tray_service.dart` — 플랫폼별 트레이 아이콘
-- [x] `assets/tray_icon_win.png` — Windows 트레이 아이콘 (32x32)
-- [x] `lib/utils/platform_window.dart` — Windows 윈도우 설정
-- [x] `main.dart` — Windows 윈도우 초기화 호출
-- [x] `app.dart` — WindowListener, 윈도우 토글/포지셔닝
-
-### Phase 4: 배경 효과 ✅
-- [x] Windows용 반투명 솔리드 배경 적용 (macOS NSVisualEffectView 대응)
-
-### Phase 5: 빌드 & 테스트 ✅
-- [x] `scripts/build_release_win.ps1` — Windows 빌드 스크립트
-- [x] 기존 89개 테스트 통과 확인
-- [x] `CLAUDE.md` Windows 빌드/실행 명령 추가
-
----
-
-## 수정 파일 요약
-
-| 파일 | 변경 내용 |
-|------|----------|
-| `lib/services/oauth_service.dart` | 경로 USERPROFILE 폴백, chmod 플랫폼 가드 |
-| `lib/utils/constants.dart` | userAgent 플랫폼 분기 |
-| `lib/services/tray_service.dart` | 트레이 아이콘 플랫폼 분기 |
-| `lib/main.dart` | Windows 윈도우 설정 호출 |
-| `lib/app.dart` | WindowListener, 윈도우 토글/포지셔닝 |
-| `lib/utils/platform_window.dart` | (신규) Windows 윈도우 설정 유틸 |
-| `pubspec.yaml` | description, 에셋 추가 |
-| `windows/runner/main.cpp` | 중복 실행 방지 Mutex |
-| `assets/tray_icon_win.png` | (신규) Windows 트레이 아이콘 |
-| `scripts/build_release_win.ps1` | (신규) Windows 빌드 스크립트 |
-| `CLAUDE.md` | Windows 빌드 명령, 플랫폼 차이 문서화 |
+- [ ] 멀티 계정 지원
+- [ ] 클라우드 동기화 (선택적)
+- [ ] 차트/그래프 시각화 (일별/주별 추세)
