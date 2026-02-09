@@ -145,15 +145,34 @@ lib/
 
 - **데이터 소스**: `~/.claude/projects/` 내 `.jsonl` 파일 (서브에이전트 포함)
 - **파싱 대상**: `type: "assistant"` 라인의 `message.usage` 필드
+- **중복 제거**: `message.id` + `requestId` 복합 키로 중복 엔트리 스킵 (Claude Code가 동일 메시지를 파일당 3~5회 중복 기록)
 - **토큰 종류**: input, cache_creation (5m/1h ephemeral), cache_read, output
 - **가격표**: `pricing.dart`에 모델별 USD/MTok 하드코딩 (2026-02 기준)
 - **비용 공식**: `Σ(tokens × rate) / 1,000,000` (모델별)
+- **타임존**: `_dateKey()`에서 UTC 타임스탬프를 `.toLocal()`로 변환 후 일별 집계
 - **일별 집계**: 비용, 메시지 수, 전체 토큰 수 (DailyCost.totalTokens)
+- **기간별 비용**: `ApiHomeScreen`에서 `dailyCosts`를 날짜 필터링하여 오늘/주/월 계산 (서비스가 아닌 UI 레벨)
 - **화면 구성** (API 모드):
   - **현재 탭**: 오늘/이번 주/이번 달 비용+토큰, 모델별 사용 요금
   - **기록 탭**: 월 네비게이터, 월 합계/일 평균/최대, 일별 비용+토큰
 - **macOS 접근**: `com.apple.security.temporary-exception.files.absolute-path.read-only` entitlement로 `/Users/` 읽기 허용
 - **사양 문서**: `docs/claude-apicost-spec.md` 참조
+
+### ccusage와의 비용 차이
+
+ClaudeMeter는 ccusage(`github.com/ryoppippi/ccusage`) 대비 1h ephemeral 캐시 사용 시 약 15~20% 높은 비용을 표시한다. 이는 버그가 아닌 가격 정책 차이:
+
+| 항목 | ClaudeMeter | ccusage |
+|------|-------------|---------|
+| 5m cache write | 1.25x input (정확) | 1.25x input (정확) |
+| **1h cache write** | **2x input (Anthropic 공식)** | **1.25x input (5m과 동일 적용)** |
+| 중복 제거 | `message.id:requestId` | `message.id:requestId` |
+| `costUSD` 필드 | 미사용 (현재 JSONL에 null) | auto 모드에서 사용 (null이면 계산) |
+| Tiered pricing | 미지원 | Sonnet 200k 초과 시 2x |
+
+- ClaudeMeter가 `cache_creation.ephemeral_1h_input_tokens` 서브필드를 읽어 1h/5m을 구분 적용
+- ccusage는 `cache_creation_input_tokens`만 읽고 단일 5m 요율 적용
+- Opus 모델의 1h 캐시 비율이 높을수록 차이 확대 (예: Opus 4.6 1h cache $10 vs $6.25/MTok)
 
 ## Window Resize
 
