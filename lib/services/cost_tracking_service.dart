@@ -49,7 +49,6 @@ class CostTrackingService {
     if (jsonlFiles.isEmpty) return CostData.empty();
 
     // Parse all files and accumulate costs
-    final modelTokens = <String, TokenUsage>{};
     final dailyCosts = <String, _DailyAccumulator>{};
     final sessionIds = <String>{};
     DateTime? oldestSession;
@@ -59,7 +58,6 @@ class CostTrackingService {
       try {
         await _parseJsonlFile(
           file,
-          modelTokens,
           dailyCosts,
           sessionIds,
           (timestamp) {
@@ -76,51 +74,25 @@ class CostTrackingService {
       }
     }
 
-    // Build model breakdown (skip models with no pricing match)
-    final modelBreakdown = <ModelCost>[];
-    double totalCost = 0;
-    for (final entry in modelTokens.entries) {
-      if (PricingTable.findPricing(entry.key) == null) continue;
-      final cost = PricingTable.calculateCost(entry.key, entry.value);
-      totalCost += cost;
-      modelBreakdown.add(ModelCost(
-        modelId: entry.key,
-        displayName: PricingTable.normalizeModelId(entry.key),
-        tokens: entry.value,
-        cost: cost,
-      ));
-    }
-    // Sort by cost descending
-    modelBreakdown.sort((a, b) => b.cost.compareTo(a.cost));
-
     // Build daily costs
-    final today = _dateKey(DateTime.now());
-    double todayCost = 0;
     final dailyList = <DailyCost>[];
     final sortedDays = dailyCosts.keys.toList()..sort();
     for (final dayKey in sortedDays) {
       final acc = dailyCosts[dayKey]!;
-      final dayCost = DailyCost(
+      dailyList.add(DailyCost(
         date: DateTime.parse(dayKey),
         cost: acc.cost,
         messageCount: acc.messageCount,
         totalTokens: acc.totalTokens,
         modelTokens: Map.unmodifiable(acc.modelTokens),
-      );
-      dailyList.add(dayCost);
-      if (dayKey == today) {
-        todayCost = acc.cost;
-      }
+      ));
     }
 
     return CostData(
-      todayCost: todayCost,
-      totalCost: totalCost,
       totalSessions: sessionIds.length,
       totalFiles: jsonlFiles.length,
       oldestSession: oldestSession,
       newestSession: newestSession,
-      modelBreakdown: modelBreakdown,
       dailyCosts: dailyList,
       fetchedAt: DateTime.now(),
     );
@@ -138,7 +110,6 @@ class CostTrackingService {
   /// Parse a single JSONL file and accumulate token data.
   Future<void> _parseJsonlFile(
     File file,
-    Map<String, TokenUsage> modelTokens,
     Map<String, _DailyAccumulator> dailyCosts,
     Set<String> sessionIds,
     void Function(DateTime) onTimestamp,
@@ -191,9 +162,6 @@ class CostTrackingService {
       // Parse tokens
       final tokenUsage = TokenUsage.fromJson(usage);
 
-      // Accumulate by model
-      modelTokens[model] = (modelTokens[model] ?? const TokenUsage()) + tokenUsage;
-
       // Accumulate by day
       if (timestamp != null) {
         final dayKey = _dateKey(timestamp);
@@ -209,9 +177,12 @@ class CostTrackingService {
     }
   }
 
-  /// Format date as YYYY-MM-DD string.
+  /// Format date as YYYY-MM-DD string in local timezone.
+  /// JSONL timestamps are UTC; convert to local so daily buckets
+  /// match the user's calendar date.
   static String _dateKey(DateTime dt) {
-    return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+    final local = dt.toLocal();
+    return '${local.year}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')}';
   }
 }
 

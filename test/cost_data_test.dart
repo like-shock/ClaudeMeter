@@ -6,11 +6,8 @@ void main() {
   group('CostData', () {
     test('empty() returns zeroed data', () {
       final data = CostData.empty();
-      expect(data.todayCost, 0);
-      expect(data.totalCost, 0);
       expect(data.totalSessions, 0);
       expect(data.totalFiles, 0);
-      expect(data.modelBreakdown, isEmpty);
       expect(data.dailyCosts, isEmpty);
       expect(data.oldestSession, isNull);
       expect(data.newestSession, isNull);

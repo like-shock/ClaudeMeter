@@ -17,35 +17,26 @@ class ModelCost {
 
 /// Aggregated cost data for display.
 class CostData {
-  final double todayCost;
-  final double totalCost;
   final int totalSessions;
   final int totalFiles;
   final DateTime? oldestSession;
   final DateTime? newestSession;
-  final List<ModelCost> modelBreakdown;
   final List<DailyCost> dailyCosts;
   final DateTime fetchedAt;
 
   const CostData({
-    required this.todayCost,
-    required this.totalCost,
     required this.totalSessions,
     required this.totalFiles,
     this.oldestSession,
     this.newestSession,
-    required this.modelBreakdown,
     required this.dailyCosts,
     required this.fetchedAt,
   });
 
   static CostData empty() {
     return CostData(
-      todayCost: 0,
-      totalCost: 0,
       totalSessions: 0,
       totalFiles: 0,
-      modelBreakdown: const [],
       dailyCosts: const [],
       fetchedAt: DateTime.now(),
     );
