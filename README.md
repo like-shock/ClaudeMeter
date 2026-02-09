@@ -1,6 +1,7 @@
 # Claude Meter
 
 macOS 시스템 트레이 앱으로 Claude AI API 사용량을 실시간 모니터링합니다.
+([ClaudeMonitor](https://github.com/whiterub/ClaudeMonitor))
 
 ## 주요 기능
 
