@@ -1,5 +1,5 @@
 name: claude_meter
-description: "macOS system tray app for monitoring Claude AI API usage."
+description: "Desktop system tray app for monitoring Claude AI API usage."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -40,6 +40,9 @@ dependencies:
 
   # Window management
   window_manager: ^0.4.3
+
+  # Screen info (transitive dep of window_manager, explicit for direct import)
+  screen_retriever: ^0.2.0
 
   # Open URLs (OAuth)
   url_launcher: ^6.3.1
@@ -83,6 +86,7 @@ flutter:
     - assets/icon.png
     - assets/tray_iconTemplate.png
     - assets/tray_iconTemplate@2x.png
+    - assets/tray_icon_win.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

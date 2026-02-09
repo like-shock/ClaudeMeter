@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:window_manager/window_manager.dart';
 import 'models/usage_data.dart';
 import 'models/config.dart';
 import 'services/oauth_service.dart';
@@ -10,6 +11,7 @@ import 'services/config_service.dart';
 import 'services/tray_service.dart';
 import 'screens/home_screen.dart';
 import 'screens/settings_screen.dart';
+import 'utils/platform_window.dart';
 
 /// Main application widget.
 class ClaudeMeterApp extends StatefulWidget {
@@ -30,7 +32,7 @@ class ClaudeMeterApp extends StatefulWidget {
   State<ClaudeMeterApp> createState() => _ClaudeMeterAppState();
 }
 
-class _ClaudeMeterAppState extends State<ClaudeMeterApp> {
+class _ClaudeMeterAppState extends State<ClaudeMeterApp> with WindowListener {
   bool _showSettings = false;
   bool _isLoading = false;
   String? _loginError;
@@ -39,6 +41,7 @@ class _ClaudeMeterAppState extends State<ClaudeMeterApp> {
   String? _subscriptionType;
   UsageData? _usageData;
   Timer? _refreshTimer;
+  bool _windowVisible = false;
 
   OAuthService get _oauth => widget.oauthService;
   UsageService get _usage => widget.usageService;
@@ -47,6 +50,10 @@ class _ClaudeMeterAppState extends State<ClaudeMeterApp> {
   @override
   void initState() {
     super.initState();
+    if (Platform.isWindows) {
+      windowManager.addListener(this);
+      widget.trayService.onToggle = _toggleWindowWindows;
+    }
     _init();
   }
 
@@ -76,7 +83,32 @@ class _ClaudeMeterAppState extends State<ClaudeMeterApp> {
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    if (Platform.isWindows) {
+      windowManager.removeListener(this);
+    }
     super.dispose();
+  }
+
+  /// Toggle window visibility (Windows only).
+  Future<void> _toggleWindowWindows() async {
+    if (_windowVisible) {
+      await windowManager.hide();
+      _windowVisible = false;
+    } else {
+      await positionWindowNearTray();
+      await windowManager.show();
+      await windowManager.focus();
+      _windowVisible = true;
+    }
+  }
+
+  /// Hide window when it loses focus (Windows only).
+  @override
+  void onWindowBlur() {
+    if (Platform.isWindows && _windowVisible) {
+      windowManager.hide();
+      _windowVisible = false;
+    }
   }
 
   void _startAutoRefresh() {
@@ -178,6 +210,29 @@ class _ClaudeMeterAppState extends State<ClaudeMeterApp> {
 
   @override
   Widget build(BuildContext context) {
+    final body = _showSettings
+        ? SettingsScreen(
+            config: _config.config,
+            isLoggedIn: _oauth.hasCredentials,
+            onSave: _handleConfigSave,
+            onLogout: _handleLogout,
+            onClose: () => setState(() => _showSettings = false),
+          )
+        : HomeScreen(
+            isLoggedIn: _oauth.hasCredentials,
+            isLoading: _isLoading,
+            loginError: _loginError,
+            usageError: _usageError,
+            userEmail: _userEmail,
+            subscriptionType: _subscriptionType,
+            usageData: _usageData,
+            config: _config.config,
+            onLogin: _handleLogin,
+            onRefresh: _refreshUsage,
+            onSettings: () => setState(() => _showSettings = true),
+            onQuit: _handleQuit,
+          );
+
     return MaterialApp(
       title: 'Claude Meter',
       debugShowCheckedModeBanner: false,
@@ -186,28 +241,18 @@ class _ClaudeMeterAppState extends State<ClaudeMeterApp> {
       ),
       home: Scaffold(
         backgroundColor: Colors.transparent,
-        body: _showSettings
-            ? SettingsScreen(
-                config: _config.config,
-                isLoggedIn: _oauth.hasCredentials,
-                onSave: _handleConfigSave,
-                onLogout: _handleLogout,
-                onClose: () => setState(() => _showSettings = false),
+        // On Windows, add a translucent solid background (replacing macOS NSVisualEffectView).
+        // On macOS, the native layer handles the frosted glass effect.
+        body: Platform.isWindows
+            ? Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xF0F2F2F7),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: body,
               )
-            : HomeScreen(
-                isLoggedIn: _oauth.hasCredentials,
-                isLoading: _isLoading,
-                loginError: _loginError,
-                usageError: _usageError,
-                userEmail: _userEmail,
-                subscriptionType: _subscriptionType,
-                usageData: _usageData,
-                config: _config.config,
-                onLogin: _handleLogin,
-                onRefresh: _refreshUsage,
-                onSettings: () => setState(() => _showSettings = true),
-                onQuit: _handleQuit,
-              ),
+            : body,
       ),
     );
   }

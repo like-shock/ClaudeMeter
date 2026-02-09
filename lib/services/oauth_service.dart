@@ -18,7 +18,9 @@ class OAuthService {
   Future<void>? _refreshLock;
 
   static String get _credentialsPath {
-    final home = Platform.environment['HOME'] ?? '.';
+    final home = Platform.environment['HOME']
+        ?? Platform.environment['USERPROFILE']
+        ?? '.';
     return '$home/${CredentialsConstants.credentialsFile}';
   }
 
@@ -36,8 +38,16 @@ class OAuthService {
     return encrypt.Key(Uint8List.fromList(keyBytes));
   }
 
+  /// Set restrictive file permissions (owner read/write only).
+  /// On macOS/Linux: POSIX chmod 0600 via dart:ffi.
+  /// On Windows: skipped — NTFS ACL on %USERPROFILE% already restricts access.
+  static void _setRestrictivePermissions(String path) {
+    if (Platform.isWindows) return;
+    _chmodPosix(path, 384); // 0600 octal
+  }
+
   /// POSIX chmod via dart:ffi — no external process dependency.
-  static void _chmod(String path, int mode) {
+  static void _chmodPosix(String path, int mode) {
     final lib = ffi.DynamicLibrary.process();
     final chmodFn = lib.lookupFunction<
         ffi.Int32 Function(ffi.Pointer<ffi.Void>, ffi.Uint16),
@@ -142,7 +152,7 @@ class OAuthService {
       // Eliminates TOCTOU race (target never exists with wrong permissions).
       final tempFile = File('${file.path}.$pid.tmp');
       await tempFile.writeAsString(jsonEncode(existing));
-      _chmod(tempFile.path, 384); // 0600 octal
+      _setRestrictivePermissions(tempFile.path);
       await tempFile.rename(file.path);
 
       _credentials = creds;

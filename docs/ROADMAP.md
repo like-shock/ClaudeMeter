@@ -1,193 +1,68 @@
-# Claude Meter for macOS - 작업 로드맵
+# Claude Meter v2.0 - Windows 플랫폼 추가 로드맵
 
-## 작업 단위 설명
-
-각 작업은 독립적으로 진행 가능하며, 의존성이 있는 경우 명시됨.
-`[P]` = 병렬 작업 가능, `[S]` = 순차 작업 필요
+> v1.0 macOS 완료 버전: [docs/archive/ROADMAP_v1.0_macos.md](archive/ROADMAP_v1.0_macos.md)
 
 ---
 
-## Phase 1: 프로젝트 초기화 ✅
-
-### 1.1 [x] Flutter 프로젝트 생성
-- [x] `flutter create` 실행
-- [x] macOS 플랫폼 활성화
-- [x] Git 초기화
-
-### 1.2 [x] 의존성 추가
-- [x] pubspec.yaml에 패키지 추가
-- [x] `flutter pub get` 실행
-
----
-
-## Phase 2: 모델 정의 ✅
-
-### 2.1 [x] UsageData 모델
-- [x] `lib/models/usage_data.dart`
-- [x] UsageTier 클래스
-- [x] UsageData 클래스
-- [x] JSON 직렬화
-
-### 2.2 [x] Credentials 모델
-- [x] `lib/models/credentials.dart`
-- [x] Credentials 클래스
-- [x] JSON 직렬화
-- [x] isExpired() 메서드
-
-### 2.3 [x] Config 모델
-- [x] `lib/models/config.dart`
-- [x] AppConfig 클래스
-- [x] 기본값 정의
-
----
-
-## Phase 3: 서비스 구현 ✅
-
-### 3.1 [x] PKCE 유틸리티
-- [x] `lib/utils/pkce.dart`
-- [x] generateVerifier()
-- [x] generateChallenge()
-- [x] generateState()
-
-### 3.2 [x] 상수 정의
-- [x] `lib/utils/constants.dart`
-- [x] API URL 상수
-- [x] OAuth 파라미터
-- [x] 암호화 salt
-
-### 3.3 [x] OAuth 서비스
-- [x] `lib/services/oauth_service.dart`
-- [x] loadCredentials() — AES-256 복호화 + 레거시 평문 마이그레이션
-- [x] saveCredentials() — AES-256-CBC 암호화 + chmod 600
-- [x] login() — 로컬 콜백 서버 + 브라우저 OAuth
-- [x] _exchangeCode()
-- [x] _refreshToken()
-- [x] logout()
-- [x] _deriveKey() — 머신 고유값 기반 AES 키 생성
-
-### 3.4 [x] 사용량 서비스
-- [x] `lib/services/usage_service.dart`
-- [x] fetchUsage()
-- [x] 에러 핸들링
-
-### 3.5 [x] 설정 서비스
-- [x] `lib/services/config_service.dart`
-- [x] loadConfig()
-- [x] saveConfig()
-
-### 3.6 [x] 트레이 서비스
-- [x] `lib/services/tray_service.dart`
-- [x] initTray()
-- [x] 메뉴 설정
-- [x] 클릭 핸들러
-
----
-
-## Phase 4: UI 위젯 ✅
-
-### 4.1 [x] UsageBar 위젯
-- [x] `lib/widgets/usage_bar.dart`
-- [x] 프로그레스 바 UI
-- [x] 퍼센트 표시
-- [x] 리셋 시간 표시
-- [x] 색상 그라데이션 (Green → Yellow → Orange → Red)
-- [x] 티어별 아이콘 (timer, calendar, auto_awesome)
-
-### 4.2 [x] LoginView 위젯
-- [x] `lib/widgets/login_view.dart`
-- [x] 로그인 버튼
-- [x] 로딩 상태
-- [x] 에러 표시
-
----
-
-## Phase 5: 화면 구현 ✅
-
-### 5.1 [x] 홈 화면
-- [x] `lib/screens/home_screen.dart`
-- [x] 사용량 표시
-- [x] 로그인 상태 분기
-- [x] 새로고침 버튼
-- [x] 설정 버튼
-
-### 5.2 [x] 설정 화면
-- [x] `lib/screens/settings_screen.dart`
-- [x] 갱신 주기 설정
-- [x] 표시 항목 토글
-- [x] 로그아웃 버튼
-
----
-
-## Phase 6: 앱 통합 ✅
-
-### 6.1 [x] 앱 위젯
-- [x] `lib/app.dart`
-- [x] MaterialApp 설정
-- [x] macOS 네이티브 라이트 테마 (NSVisualEffectView)
-
-### 6.2 [x] 메인 엔트리
-- [x] `lib/main.dart`
-- [x] 윈도우 설정
-- [x] 트레이 초기화
-- [x] 자동 갱신 타이머
-
-### 6.3 [x] macOS 설정
-- [x] `macos/Runner/AppDelegate.swift` — NSPanel + NSVisualEffectView
-- [x] 윈도우 스타일 (Borderless, 둥근 모서리 10px, 투명 배경)
-- [x] 팝업 동작
-
----
-
-## Phase 7: 품질 & 보안 ✅
-
-### 7.1 [x] 테스트
-- [x] 모델 테스트 (Credentials, Config, UsageData, PKCE)
-- [x] 위젯 테스트 (UsageBar, LoginView, HomeScreen)
-- [x] 암호화 테스트 (AES-256 라운드트립, 보안 검증)
-- [x] 총 89개 테스트 (8 파일)
-
-### 7.2 [x] 보안 강화
-- [x] AES-256-CBC 암호화 자격증명 저장
-- [x] 파일 권한 600 (owner read/write only)
-- [x] 레거시 평문 자동 마이그레이션
-- [x] Per-request HttpClient + badCertificateCallback
-- [x] 앱 종료 시 리소스 정리 (타이머 해제, 트레이 리스너 제거)
-- [x] 미사용 의존성 제거 (flutter_secure_storage)
-
-### 7.3 [ ] 빌드 & 배포
-- [ ] `flutter build macos`
-- [ ] 앱 아이콘 설정
-- [ ] Info.plist 설정
-- [ ] LSUIElement (dock 숨김)
-
----
-
-## 의존성 그래프
-
-```
-Phase 1 (초기화)
-    ↓
-Phase 2 (모델) + Phase 3 (서비스) ←→ Phase 4 (위젯)   [병렬]
-         ↓                              ↓
-         └──────────┬──────────────────┘
-                    ↓
-              Phase 5 (화면)
-                    ↓
-              Phase 6 (통합)
-                    ↓
-              Phase 7 (품질 & 보안)
-```
-
----
-
-## 진행 상황
+## v1.0 macOS (완료)
 
 | Phase | 상태 |
 |-------|------|
-| 1. 초기화 | ✅ 완료 |
-| 2. 모델 | ✅ 완료 |
-| 3. 서비스 | ✅ 완료 |
-| 4. 위젯 | ✅ 완료 |
-| 5. 화면 | ✅ 완료 |
-| 6. 통합 | ✅ 완료 |
-| 7. 품질 & 보안 | 🔄 7.3 빌드 & 배포 남음 |
+| 1. 프로젝트 초기화 | ✅ 완료 |
+| 2. 모델 정의 | ✅ 완료 |
+| 3. 서비스 구현 | ✅ 완료 |
+| 4. UI 위젯 | ✅ 완료 |
+| 5. 화면 구현 | ✅ 완료 |
+| 6. 앱 통합 | ✅ 완료 |
+| 7. 품질 & 보안 | ✅ 완료 (89개 테스트) |
+
+---
+
+## v2.0 Windows 플랫폼 추가
+
+### Phase 0: 문서 정리 ✅
+- [x] 기존 ROADMAP/PRD → `docs/archive/` 아카이브
+- [x] v2.0 로드맵 생성
+
+### Phase 1: Windows 프로젝트 스캐폴드 ✅
+- [x] `flutter create --platforms=windows .` 실행
+- [x] `windows/runner/main.cpp`에 중복 실행 방지 Mutex 추가
+- [x] `pubspec.yaml` description 변경, 에셋 추가
+
+### Phase 2: Critical Dart 코드 수정 (3개 블로커) ✅
+- [x] `oauth_service.dart` — 자격증명 경로 `USERPROFILE` 폴백
+- [x] `oauth_service.dart` — chmod FFI 호출 `Platform.isWindows` 가드
+- [x] `constants.dart` — User-Agent 플랫폼 분기
+
+### Phase 3: 트레이 아이콘 & 윈도우 관리 ✅
+- [x] `tray_service.dart` — 플랫폼별 트레이 아이콘
+- [x] `assets/tray_icon_win.png` — Windows 트레이 아이콘 (32x32)
+- [x] `lib/utils/platform_window.dart` — Windows 윈도우 설정
+- [x] `main.dart` — Windows 윈도우 초기화 호출
+- [x] `app.dart` — WindowListener, 윈도우 토글/포지셔닝
+
+### Phase 4: 배경 효과 ✅
+- [x] Windows용 반투명 솔리드 배경 적용 (macOS NSVisualEffectView 대응)
+
+### Phase 5: 빌드 & 테스트 ✅
+- [x] `scripts/build_release_win.ps1` — Windows 빌드 스크립트
+- [x] 기존 89개 테스트 통과 확인
+- [x] `CLAUDE.md` Windows 빌드/실행 명령 추가
+
+---
+
+## 수정 파일 요약
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `lib/services/oauth_service.dart` | 경로 USERPROFILE 폴백, chmod 플랫폼 가드 |
+| `lib/utils/constants.dart` | userAgent 플랫폼 분기 |
+| `lib/services/tray_service.dart` | 트레이 아이콘 플랫폼 분기 |
+| `lib/main.dart` | Windows 윈도우 설정 호출 |
+| `lib/app.dart` | WindowListener, 윈도우 토글/포지셔닝 |
+| `lib/utils/platform_window.dart` | (신규) Windows 윈도우 설정 유틸 |
+| `pubspec.yaml` | description, 에셋 추가 |
+| `windows/runner/main.cpp` | 중복 실행 방지 Mutex |
+| `assets/tray_icon_win.png` | (신규) Windows 트레이 아이콘 |
+| `scripts/build_release_win.ps1` | (신규) Windows 빌드 스크립트 |
+| `CLAUDE.md` | Windows 빌드 명령, 플랫폼 차이 문서화 |

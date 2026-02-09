@@ -5,9 +5,15 @@ import 'services/oauth_service.dart';
 import 'services/usage_service.dart';
 import 'services/config_service.dart';
 import 'services/tray_service.dart';
+import 'utils/platform_window.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // On Windows, configure the window via Dart (macOS uses native AppDelegate).
+  if (Platform.isWindows) {
+    await configureWindowsWindow();
+  }
 
   // Initialize services
   final oauthService = OAuthService();

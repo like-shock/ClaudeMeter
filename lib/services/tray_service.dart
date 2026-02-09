@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:tray_manager/tray_manager.dart';
 
@@ -14,12 +15,16 @@ class TrayService with TrayListener {
   /// Initialize the system tray.
   Future<void> init() async {
     try {
-      // tray_manager on macOS uses rootBundle.load(iconPath) internally,
-      // so pass the Flutter asset path directly (not a file system path).
-      await trayManager.setIcon(
-        'assets/tray_iconTemplate.png',
-        isTemplate: true,
-      );
+      if (Platform.isWindows) {
+        await trayManager.setIcon('assets/tray_icon_win.png');
+      } else {
+        // tray_manager on macOS uses rootBundle.load(iconPath) internally,
+        // so pass the Flutter asset path directly (not a file system path).
+        await trayManager.setIcon(
+          'assets/tray_iconTemplate.png',
+          isTemplate: true,
+        );
+      }
     } catch (e) {
       if (kDebugMode) debugPrint('Tray setIcon failed: $e');
     }
