@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-VERSION="1.0.0"
+VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: *//;s/+.*//')
 APP_NAME="claude_meter"
 
 echo "=== Flutter Release Build ==="
