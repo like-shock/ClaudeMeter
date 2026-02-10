@@ -292,6 +292,16 @@ class _ApiHomeScreenState extends State<ApiHomeScreen>
             const SizedBox(height: 12),
           ],
           _buildStats(data),
+          if (data.fetchedAt.year > 0) ...[
+            const SizedBox(height: 8),
+            Text(
+              '마지막 업데이트: ${_formatTime(data.fetchedAt)}',
+              style: const TextStyle(
+                fontSize: 11,
+                color: Color(0xFF8E8E93),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -423,8 +433,6 @@ class _ApiHomeScreenState extends State<ApiHomeScreen>
         children: [
           _buildStatRow('세션 수', '${data.totalSessions}개'),
           _buildStatRow('JSONL 파일', '${data.totalFiles}개'),
-          if (data.fetchedAt.year > 0)
-            _buildStatRow('마지막 계산', _formatTime(data.fetchedAt)),
         ],
       ),
     );
