@@ -92,9 +92,7 @@ class _ClaudeMeterAppState extends State<ClaudeMeterApp> with WindowListener {
     // Wire tray callbacks
     widget.trayService.onRefresh = _handleTrayRefresh;
     widget.trayService.onSettings = () {
-      if (_config.config.appMode == AppMode.plan) {
-        setState(() => _currentScreen = _AppScreen.settings);
-      }
+      setState(() => _currentScreen = _AppScreen.settings);
     };
     widget.trayService.onModeChange = _handleModeChange;
 
@@ -319,10 +317,16 @@ class _ClaudeMeterAppState extends State<ClaudeMeterApp> with WindowListener {
 
   Future<void> _handleConfigSave(AppConfig newConfig) async {
     // Preserve appMode when saving settings
-    final merged = newConfig.copyWith(appMode: _config.config.appMode);
+    final mode = _config.config.appMode;
+    final merged = newConfig.copyWith(appMode: mode);
     await _config.saveConfig(merged);
-    _startAutoRefresh();
-    setState(() => _currentScreen = _AppScreen.home);
+    if (mode == AppMode.api) {
+      _startCostAutoRefresh();
+      setState(() => _currentScreen = _AppScreen.apiHome);
+    } else {
+      _startAutoRefresh();
+      setState(() => _currentScreen = _AppScreen.home);
+    }
   }
 
   @override
@@ -338,10 +342,14 @@ class _ClaudeMeterAppState extends State<ClaudeMeterApp> with WindowListener {
       case _AppScreen.settings:
         body = SettingsScreen(
           config: _config.config,
+          appMode: _config.config.appMode,
           isLoggedIn: _oauth.hasCredentials,
           onSave: _handleConfigSave,
           onLogout: _handleLogout,
-          onClose: () => setState(() => _currentScreen = _AppScreen.home),
+          onClose: () => setState(() => _currentScreen =
+              _config.config.appMode == AppMode.api
+                  ? _AppScreen.apiHome
+                  : _AppScreen.home),
         );
         break;
       case _AppScreen.apiHome:
@@ -350,6 +358,8 @@ class _ClaudeMeterAppState extends State<ClaudeMeterApp> with WindowListener {
           isLoading: _isCostLoading,
           error: _costError,
           onRefresh: _refreshCosts,
+          onSettings: () =>
+              setState(() => _currentScreen = _AppScreen.settings),
           onModeChange: _handleModeChange,
           onQuit: _handleQuit,
         );

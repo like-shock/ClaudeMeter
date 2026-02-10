@@ -10,6 +10,7 @@ class ApiHomeScreen extends StatefulWidget {
   final bool isLoading;
   final String? error;
   final VoidCallback onRefresh;
+  final VoidCallback onSettings;
   final VoidCallback onModeChange;
   final VoidCallback onQuit;
 
@@ -19,6 +20,7 @@ class ApiHomeScreen extends StatefulWidget {
     required this.isLoading,
     this.error,
     required this.onRefresh,
+    required this.onSettings,
     required this.onModeChange,
     required this.onQuit,
   });
@@ -101,6 +103,11 @@ class _ApiHomeScreenState extends State<ApiHomeScreen>
             icon: Icons.refresh,
             onTap: widget.isLoading ? null : widget.onRefresh,
             isLoading: widget.isLoading,
+          ),
+          const SizedBox(width: 8),
+          _buildIconButton(
+            icon: Icons.settings,
+            onTap: widget.onSettings,
           ),
           const SizedBox(width: 8),
           _buildIconButton(

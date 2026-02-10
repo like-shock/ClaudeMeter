@@ -4,6 +4,7 @@ import '../models/config.dart';
 /// Settings screen.
 class SettingsScreen extends StatefulWidget {
   final AppConfig config;
+  final AppMode? appMode;
   final bool isLoggedIn;
   final Function(AppConfig) onSave;
   final VoidCallback onLogout;
@@ -12,6 +13,7 @@ class SettingsScreen extends StatefulWidget {
   const SettingsScreen({
     super.key,
     required this.config,
+    this.appMode,
     required this.isLoggedIn,
     required this.onSave,
     required this.onLogout,
@@ -42,31 +44,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildSection('표시 항목', [
-                  _buildCheckbox('5시간 세션', _localConfig.showFiveHour,
-                      (v) => _updateConfig(showFiveHour: v)),
-                  _buildCheckbox('주간 전체', _localConfig.showSevenDay,
-                      (v) => _updateConfig(showSevenDay: v)),
-                  _buildCheckbox('Sonnet 주간', _localConfig.showSonnet,
-                      (v) => _updateConfig(showSonnet: v)),
-                ]),
-                const SizedBox(height: 24),
+                if (widget.appMode != AppMode.api) ...[
+                  _buildSection('표시 항목', [
+                    _buildCheckbox('5시간 세션', _localConfig.showFiveHour,
+                        (v) => _updateConfig(showFiveHour: v)),
+                    _buildCheckbox('주간 전체', _localConfig.showSevenDay,
+                        (v) => _updateConfig(showSevenDay: v)),
+                    _buildCheckbox('Sonnet 주간', _localConfig.showSonnet,
+                        (v) => _updateConfig(showSonnet: v)),
+                  ]),
+                  const SizedBox(height: 24),
+                ],
                 _buildSection('갱신 주기', [
                   _buildSlider(),
                 ]),
-                const SizedBox(height: 24),
-                _buildSection('계정', [
-                  if (widget.isLoggedIn)
-                    _buildLogoutButton()
-                  else
-                    const Text(
-                      '로그인되지 않음',
-                      style: TextStyle(
-                        color: Color(0xFF8E8E93),
-                        fontSize: 14,
+                if (widget.appMode != AppMode.api) ...[
+                  const SizedBox(height: 24),
+                  _buildSection('계정', [
+                    if (widget.isLoggedIn)
+                      _buildLogoutButton()
+                    else
+                      const Text(
+                        '로그인되지 않음',
+                        style: TextStyle(
+                          color: Color(0xFF8E8E93),
+                          fontSize: 14,
+                        ),
                       ),
-                    ),
-                ]),
+                  ]),
+                ],
               ],
             ),
           ),
