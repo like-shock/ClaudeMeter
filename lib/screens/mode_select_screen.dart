@@ -82,7 +82,7 @@ class ModeSelectScreen extends StatelessWidget {
             'v$appVersion',
             style: const TextStyle(
               fontSize: 11,
-              color: Color(0xFFC7C7CC),
+              color: Color(0xFF1D1D1F),
             ),
           ),
           const Spacer(),
