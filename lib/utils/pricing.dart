@@ -17,6 +17,30 @@ class ModelPricing {
     required this.cacheReadRate,
     required this.outputRate,
   });
+
+  /// Deserialize from JSON (cached pricing).
+  factory ModelPricing.fromJson(Map<String, dynamic> json) {
+    return ModelPricing(
+      modelId: json['modelId'] as String? ?? '',
+      displayName: json['displayName'] as String? ?? '',
+      inputRate: (json['inputRate'] as num?)?.toDouble() ?? 0,
+      cache5mWriteRate: (json['cache5mWriteRate'] as num?)?.toDouble() ?? 0,
+      cache1hWriteRate: (json['cache1hWriteRate'] as num?)?.toDouble() ?? 0,
+      cacheReadRate: (json['cacheReadRate'] as num?)?.toDouble() ?? 0,
+      outputRate: (json['outputRate'] as num?)?.toDouble() ?? 0,
+    );
+  }
+
+  /// Serialize to JSON for caching.
+  Map<String, dynamic> toJson() => {
+        'modelId': modelId,
+        'displayName': displayName,
+        'inputRate': inputRate,
+        'cache5mWriteRate': cache5mWriteRate,
+        'cache1hWriteRate': cache1hWriteRate,
+        'cacheReadRate': cacheReadRate,
+        'outputRate': outputRate,
+      };
 }
 
 /// Token counts extracted from a single JSONL usage entry.
@@ -86,7 +110,7 @@ class TokenUsage {
 class PricingTable {
   PricingTable._();
 
-  static const List<ModelPricing> _models = [
+  static const List<ModelPricing> _hardcodedModels = [
     // Opus 4.6 / 4.5
     ModelPricing(
       modelId: 'claude-opus-4-6',
@@ -165,6 +189,22 @@ class PricingTable {
       outputRate: 4,
     ),
   ];
+
+  static List<ModelPricing> _models = List.of(_hardcodedModels);
+
+  /// Hardcoded fallback models (read-only access).
+  static List<ModelPricing> get hardcodedModels =>
+      List.unmodifiable(_hardcodedModels);
+
+  /// Atomically replace the active model list.
+  static void updateModels(List<ModelPricing> models) {
+    _models = List.of(models);
+  }
+
+  /// Reset to hardcoded defaults (for tests and error recovery).
+  static void resetToHardcoded() {
+    _models = List.of(_hardcodedModels);
+  }
 
   /// Look up pricing by model string from JSONL.
   /// Model strings in JSONL include date suffixes (e.g. "claude-sonnet-4-5-20250929"),

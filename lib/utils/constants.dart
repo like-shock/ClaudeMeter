@@ -24,6 +24,13 @@ class ApiConstants {
 
   /// Maximum API response size (1 MB).
   static const int maxResponseBytes = 1024 * 1024;
+
+  /// LiteLLM pricing data source URL.
+  static const String pricingSourceUrl =
+      'https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json';
+
+  /// Maximum pricing response size (5 MB).
+  static const int maxPricingResponseBytes = 5 * 1024 * 1024;
 }
 
 /// Credentials file path

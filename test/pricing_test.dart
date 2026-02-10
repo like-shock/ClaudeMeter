@@ -85,6 +85,10 @@ void main() {
   });
 
   group('PricingTable', () {
+    setUp(() {
+      PricingTable.resetToHardcoded();
+    });
+
     test('findPricing returns exact match', () {
       final pricing = PricingTable.findPricing('claude-opus-4-6');
       expect(pricing, isNotNull);
@@ -174,6 +178,98 @@ void main() {
       const usage = TokenUsage();
       final cost = PricingTable.calculateCost('claude-opus-4-6', usage);
       expect(cost, 0.0);
+    });
+
+    test('updateModels replaces active model list', () {
+      final custom = [
+        const ModelPricing(
+          modelId: 'claude-test-1',
+          displayName: 'Test 1',
+          inputRate: 99,
+          cache5mWriteRate: 99,
+          cache1hWriteRate: 99,
+          cacheReadRate: 99,
+          outputRate: 99,
+        ),
+      ];
+      PricingTable.updateModels(custom);
+
+      expect(PricingTable.findPricing('claude-test-1'), isNotNull);
+      expect(PricingTable.findPricing('claude-test-1')!.inputRate, 99);
+      // Original models should no longer be found
+      expect(PricingTable.findPricing('claude-opus-4-6'), isNull);
+    });
+
+    test('resetToHardcoded restores original models', () {
+      PricingTable.updateModels([]);
+      expect(PricingTable.findPricing('claude-opus-4-6'), isNull);
+
+      PricingTable.resetToHardcoded();
+      expect(PricingTable.findPricing('claude-opus-4-6'), isNotNull);
+      expect(PricingTable.findPricing('claude-opus-4-6')!.inputRate, 5);
+    });
+
+    test('hardcodedModels returns unmodifiable copy', () {
+      final models = PricingTable.hardcodedModels;
+      expect(models.length, 8);
+      expect(models.first.modelId, 'claude-opus-4-6');
+      expect(() => models.add(models.first), throwsUnsupportedError);
+    });
+  });
+
+  group('ModelPricing serialization', () {
+    test('toJson produces correct map', () {
+      const model = ModelPricing(
+        modelId: 'claude-opus-4-6',
+        displayName: 'Opus 4.6',
+        inputRate: 5,
+        cache5mWriteRate: 6.25,
+        cache1hWriteRate: 10,
+        cacheReadRate: 0.50,
+        outputRate: 25,
+      );
+      final json = model.toJson();
+      expect(json['modelId'], 'claude-opus-4-6');
+      expect(json['displayName'], 'Opus 4.6');
+      expect(json['inputRate'], 5);
+      expect(json['cache5mWriteRate'], 6.25);
+      expect(json['cache1hWriteRate'], 10);
+      expect(json['cacheReadRate'], 0.50);
+      expect(json['outputRate'], 25);
+    });
+
+    test('fromJson roundtrips correctly', () {
+      const original = ModelPricing(
+        modelId: 'claude-sonnet-4-5',
+        displayName: 'Sonnet 4.5',
+        inputRate: 3,
+        cache5mWriteRate: 3.75,
+        cache1hWriteRate: 6,
+        cacheReadRate: 0.30,
+        outputRate: 15,
+      );
+      final restored = ModelPricing.fromJson(original.toJson());
+      expect(restored.modelId, original.modelId);
+      expect(restored.displayName, original.displayName);
+      expect(restored.inputRate, original.inputRate);
+      expect(restored.cache5mWriteRate, original.cache5mWriteRate);
+      expect(restored.cache1hWriteRate, original.cache1hWriteRate);
+      expect(restored.cacheReadRate, original.cacheReadRate);
+      expect(restored.outputRate, original.outputRate);
+    });
+
+    test('fromJson handles missing fields with defaults', () {
+      final model = ModelPricing.fromJson({'modelId': 'test'});
+      expect(model.modelId, 'test');
+      expect(model.displayName, '');
+      expect(model.inputRate, 0);
+      expect(model.outputRate, 0);
+    });
+
+    test('fromJson handles empty map', () {
+      final model = ModelPricing.fromJson({});
+      expect(model.modelId, '');
+      expect(model.inputRate, 0);
     });
   });
 }
