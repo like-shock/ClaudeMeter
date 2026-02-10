@@ -29,7 +29,7 @@ flutter build windows --release
 # Build release (Windows 배포용)
 powershell scripts/build_release_win.ps1
 
-# Run all tests (128 tests across 11 files)
+# Run all tests (159 tests across 12 files)
 flutter test
 
 # Run a single test file
@@ -78,6 +78,9 @@ CostTrackingService (local JSONL parsing from ~/.claude/projects/)
     → ApiHomeScreen (Current tab: 기간별 비용/토큰, 모델별 breakdown)
     → ApiHomeScreen (History tab: 월별 네비게이션, 일별 비용/토큰)
 
+PricingUpdateService (LiteLLM JSON → ETag fetch → SharedPreferences cache)
+    → PricingTable.updateModels() — 매일 정오 자동 업데이트
+
 ConfigService (SharedPreferences) ↔ SettingsScreen (Plan 모드 전용)
 TrayService (system tray menu) ↔ AppState (모드별 메뉴 구성)
 ```
@@ -109,11 +112,12 @@ lib/
 │   ├── credentials.dart   # OAuth tokens (access, refresh, expiry)
 │   └── usage_data.dart    # UsageTier + UsageData (utilization, reset time)
 ├── services/
-│   ├── cost_tracking_service.dart # JSONL parsing, daily token accumulation, cost calculation
-│   ├── oauth_service.dart # OAuth 2.0 + PKCE, token management, AES-256 encrypted file storage
-│   ├── usage_service.dart # API usage data fetching
-│   ├── config_service.dart# SharedPreferences persistence
-│   └── tray_service.dart  # System tray icon, mode-aware context menu
+│   ├── cost_tracking_service.dart    # JSONL parsing, daily token accumulation, cost calculation
+│   ├── oauth_service.dart            # OAuth 2.0 + PKCE, token management, AES-256 encrypted file storage
+│   ├── pricing_update_service.dart   # LiteLLM 기반 가격표 자동 업데이트 (매일 정오, ETag)
+│   ├── usage_service.dart            # API usage data fetching
+│   ├── config_service.dart           # SharedPreferences persistence
+│   └── tray_service.dart             # System tray icon, mode-aware context menu
 ├── screens/
 │   ├── mode_select_screen.dart # First-launch mode selection (Plan/API)
 │   ├── api_home_screen.dart    # API mode: Current tab (period costs) + History tab (monthly)
@@ -124,9 +128,9 @@ lib/
 │   ├── login_view.dart    # One-click OAuth login (browser → auto callback)
 │   └── usage_bar.dart     # Color-coded progress bar with tier icon
 └── utils/
-    ├── constants.dart     # API endpoints, OAuth client ID, timeouts, encryption salt
+    ├── constants.dart     # API endpoints, OAuth client ID, timeouts, encryption salt, LiteLLM URL
     ├── pkce.dart          # PKCE verifier/challenge/state generation
-    ├── pricing.dart       # Model pricing table (USD/MTok), TokenUsage, cost calculation
+    ├── pricing.dart       # Model pricing table (USD/MTok, 동적 업데이트 가능), TokenUsage, cost calculation
     └── platform_window.dart # Window sizing (planWindowSize/apiWindowSize), resizeWindow(), MethodChannel
 ```
 
@@ -147,7 +151,7 @@ lib/
 - **파싱 대상**: `type: "assistant"` 라인의 `message.usage` 필드
 - **중복 제거**: `message.id` + `requestId` 복합 키로 중복 엔트리 스킵 (Claude Code가 동일 메시지를 파일당 3~5회 중복 기록)
 - **토큰 종류**: input, cache_creation (5m/1h ephemeral), cache_read, output
-- **가격표**: `pricing.dart`에 모델별 USD/MTok 하드코딩 (2026-02 기준)
+- **가격표**: `pricing.dart`에 모델별 USD/MTok 하드코딩 (2026-02 기준), `PricingUpdateService`로 자동 업데이트
 - **비용 공식**: `Σ(tokens × rate) / 1,000,000` (모델별)
 - **타임존**: `_dateKey()`에서 UTC 타임스탬프를 `.toLocal()`로 변환 후 일별 집계
 - **일별 집계**: 비용, 메시지 수, 전체 토큰 수 (DailyCost.totalTokens)
@@ -174,6 +178,19 @@ ClaudeMeter는 ccusage(`github.com/ryoppippi/ccusage`) 대비 1h ephemeral 캐�
 - ccusage는 `cache_creation_input_tokens`만 읽고 단일 5m 요율 적용
 - Opus 모델의 1h 캐시 비율이 높을수록 차이 확대 (예: Opus 4.6 1h cache $10 vs $6.25/MTok)
 
+### 가격표 자동 업데이트
+
+`PricingUpdateService`가 매일 정오 [LiteLLM JSON](https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json)에서 최신 Claude 모델 가격을 fetch:
+
+- **데이터 흐름**: LiteLLM JSON → `claude-` prefix 필터 → per-token→per-MTok 변환 → 캐시 승수 적용 (5m=1.25x, 1h=2x, read=0.1x) → `PricingTable.updateModels()`
+- **ETag 조건부 요청**: ~3MB JSON을 매번 받지 않고 304 시 스킵
+- **모델 ID 정규화**: `stripDateSuffix()` (날짜 접미사 제거), `generateDisplayName()` (표시명 생성)
+- **머지 전략**: fetch 결과가 하드코딩 모델을 override, 하드코딩에만 있는 모델은 보존, 새 모델 자동 추가
+- **폴백 체인**: 하드코딩 → SharedPreferences 캐시 → 최신 fetch (항상 유효한 가격 보장)
+- **에러 처리**: 네트워크/파싱 실패 시 현재 가격 유지, 1시간 후 재시도
+- **PricingTable 동적화**: `_models`가 mutable, `updateModels()`/`resetToHardcoded()`로 원자적 교체
+- **캐시 직렬화**: `ModelPricing.fromJson()`/`toJson()`으로 SharedPreferences에 저장/복원
+
 ## Window Resize
 
 - macOS: `MethodChannel('com.claudemeter/window')` → `setWindowSize` handler in AppDelegate.swift
@@ -186,6 +203,7 @@ ClaudeMeter는 ccusage(`github.com/ryoppippi/ccusage`) 대비 1h ephemeral 캐�
 - Authorization: `https://claude.ai/oauth/authorize`
 - Usage data: `https://api.anthropic.com/api/oauth/usage` (header: `anthropic-beta: oauth-2025-04-20`)
 - OAuth Client ID: `9d1c250a-e61b-44d9-88ed-5944d1962f5e` (public client, not a secret)
+- Pricing data: `https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json` (ETag 조건부 GET)
 
 ## Credential Storage
 

@@ -48,7 +48,9 @@
 | `cache_read_input_tokens` | 캐시 읽기 토큰 |
 | `output_tokens` | 출력 토큰 |
 
-## 가격표 (2026-02 기준, USD/MTok)
+## 가격표
+
+### 하드코딩 기본값 (2026-02 기준, USD/MTok)
 
 | 모델 | Input | Cache 5m Write | Cache 1h Write | Cache Read | Output |
 |------|-------|----------------|----------------|------------|--------|
@@ -57,6 +59,21 @@
 | Sonnet 4.5 / 4 | $3 | $3.75 | $6 | $0.30 | $15 |
 | Haiku 4.5 | $1 | $1.25 | $2 | $0.10 | $5 |
 | Haiku 3.5 | $0.80 | $1 | $1.60 | $0.08 | $4 |
+
+### 자동 업데이트 (v2.0.1)
+
+`PricingUpdateService`가 매일 정오 [LiteLLM JSON](https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json)에서 최신 가격을 가져와 하드코딩 가격표를 동적으로 override합니다.
+
+- **추출 대상**: `input_cost_per_token`, `output_cost_per_token` (per-token → per-MTok 변환)
+- **캐시 승수**: base input rate에 Anthropic 공식 승수 적용
+  - 5m cache write = input × 1.25
+  - 1h cache write = input × 2.0
+  - cache read = input × 0.1
+- **모델 필터**: `claude-` prefix로 시작하는 키만 추출 (Bedrock/Vertex prefix 제외)
+- **날짜 접미사**: `claude-opus-4-6-20260101` → `claude-opus-4-6` (8자리 날짜 제거)
+- **머지 규칙**: fetch 결과가 하드코딩 override, 하드코딩에만 있는 모델 보존, 새 모델 자동 추가
+- **ETag**: 조건부 GET으로 대역폭 절약 (~3MB JSON, 304 시 다운로드 안 함)
+- **폴백**: 하드코딩 → SharedPreferences 캐시 → 최신 fetch (실패 시 현재 가격 유지, 1h 재시도)
 
 ## 비용 공식
 

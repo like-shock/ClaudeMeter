@@ -1,8 +1,8 @@
-# ClaudeMeter v2.0 PRD — 듀얼 모드 UI
+# ClaudeMeter PRD — 듀얼 모드 UI
 
 ## 개요
 
-ClaudeMeter v2.0은 두 가지 독립된 모드를 제공합니다:
+ClaudeMeter는 두 가지 독립된 모드를 제공합니다:
 
 1. **Plan Mode** — OAuth 기반 구독 사용률 모니터링
 2. **API Mode** — 로컬 JSONL 파싱 기반 API 비용 추적
@@ -83,3 +83,35 @@ AppConfig.appMode: AppMode? // null = 미선택 (첫 실행)
 ```dart
 DailyCost.totalTokens: int // 일별 전체 토큰 합계
 ```
+
+## 가격표 자동 업데이트 (v2.0.1)
+
+### 개요
+
+`PricingUpdateService`가 매일 정오 LiteLLM JSON에서 Claude 모델 가격을 자동으로 fetch하여 하드코딩 가격표를 동적으로 업데이트합니다.
+
+### 데이터 소스
+
+- URL: `https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json`
+- 필드: `input_cost_per_token`, `output_cost_per_token` (per-token → per-MTok 변환)
+- 캐시 승수: Anthropic 공식 (5m=1.25x, 1h=2x, read=0.1x)
+
+### 동작 방식
+
+| 시점 | 동작 |
+|------|------|
+| 앱 시작 | SharedPreferences에서 캐시된 가격 로드 → staleness 체크 (>24h → 즉시 fetch) |
+| 매일 정오 | ETag 조건부 fetch → 304: 스킵 / 200: 파싱 → 머지 → 업데이트 |
+| fetch 실패 | 현재 가격 유지, 1시간 후 재시도 |
+| 첫 실행 | 하드코딩으로 시작, 즉시 fetch |
+
+### 모델 매칭
+
+- `claude-` prefix 필터 (Bedrock/Vertex 등 제외)
+- 날짜 접미사 제거: `claude-opus-4-6-20260101` → `claude-opus-4-6`
+- 표시명 생성: `claude-opus-4-6` → `Opus 4.6`
+- 새 모델 자동 발견 및 추가
+
+### 폴백 체인
+
+하드코딩 가격 → SharedPreferences 캐시 → 최신 fetch (항상 유효한 가격 보장)
