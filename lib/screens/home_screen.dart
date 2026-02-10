@@ -70,7 +70,7 @@ class HomeScreen extends StatelessWidget {
       child: Row(
         children: [
           const Text(
-            'Claude Meter',
+            'Plan Mode',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
