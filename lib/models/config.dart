@@ -10,7 +10,7 @@ class AppConfig {
   final AppMode? appMode;
 
   const AppConfig({
-    this.refreshIntervalSeconds = 60,
+    this.refreshIntervalSeconds = 600,
     this.showFiveHour = true,
     this.showSevenDay = true,
     this.showSonnet = true,
@@ -25,10 +25,10 @@ class AppConfig {
     final sonnetRaw = json['showSonnet'];
     final modeRaw = json['appMode'];
 
-    int refreshInterval = 60;
+    int refreshInterval = 600;
     if (refreshRaw is int) {
-      // Clamp to reasonable bounds (10 seconds to 5 minutes)
-      refreshInterval = refreshRaw.clamp(10, 300);
+      // Clamp to reasonable bounds (10 seconds to 10 minutes)
+      refreshInterval = refreshRaw.clamp(10, 600);
     }
 
     AppMode? appMode;

@@ -101,7 +101,7 @@ void main() {
   group('AppConfig', () {
     test('default values', () {
       const config = AppConfig();
-      expect(config.refreshIntervalSeconds, 60);
+      expect(config.refreshIntervalSeconds, 600);
       expect(config.showFiveHour, true);
       expect(config.showSevenDay, true);
       expect(config.showSonnet, true);
@@ -111,7 +111,7 @@ void main() {
       const config = AppConfig();
       final updated = config.copyWith(refreshIntervalSeconds: 120);
       expect(updated.refreshIntervalSeconds, 120);
-      expect(config.refreshIntervalSeconds, 60);
+      expect(config.refreshIntervalSeconds, 600);
     });
   });
 }

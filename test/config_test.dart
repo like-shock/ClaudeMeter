@@ -19,12 +19,12 @@ void main() {
     group('fromJson', () {
       test('parses valid JSON', () {
         final config = AppConfig.fromJson({
-          'refreshIntervalSeconds': 60,
+          'refreshIntervalSeconds': 600,
           'showFiveHour': false,
           'showSevenDay': true,
           'showSonnet': false,
         });
-        expect(config.refreshIntervalSeconds, equals(60));
+        expect(config.refreshIntervalSeconds, equals(600));
         expect(config.showFiveHour, isFalse);
         expect(config.showSevenDay, isTrue);
         expect(config.showSonnet, isFalse);
@@ -33,7 +33,7 @@ void main() {
 
       test('uses defaults for missing fields', () {
         final config = AppConfig.fromJson({});
-        expect(config.refreshIntervalSeconds, equals(60));
+        expect(config.refreshIntervalSeconds, equals(600));
         expect(config.showFiveHour, isTrue);
         expect(config.showSevenDay, isTrue);
         expect(config.showSonnet, isTrue);
@@ -45,7 +45,7 @@ void main() {
           'refreshIntervalSeconds': null,
           'showFiveHour': null,
         });
-        expect(config.refreshIntervalSeconds, equals(60));
+        expect(config.refreshIntervalSeconds, equals(600));
         expect(config.showFiveHour, isTrue);
       });
 
@@ -54,7 +54,7 @@ void main() {
           'refreshIntervalSeconds': 'sixty',
           'showFiveHour': 'yes',
         });
-        expect(config.refreshIntervalSeconds, equals(60));
+        expect(config.refreshIntervalSeconds, equals(600));
         expect(config.showFiveHour, isTrue);
       });
 

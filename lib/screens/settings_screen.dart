@@ -186,8 +186,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Slider(
               value: _localConfig.refreshIntervalSeconds.toDouble(),
               min: 10,
-              max: 300,
-              divisions: 29,
+              max: 600,
+              divisions: 59,
               onChanged: (v) => _updateConfig(refreshIntervalSeconds: v.round()),
             ),
           ),
