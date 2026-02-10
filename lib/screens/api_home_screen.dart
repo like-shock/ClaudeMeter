@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/cost_data.dart';
+import '../utils/constants.dart';
 import '../utils/pricing.dart';
 import '../widgets/cost_bar.dart';
 
@@ -85,6 +86,14 @@ class _ApiHomeScreenState extends State<ApiHomeScreen>
               fontSize: 14,
               fontWeight: FontWeight.w600,
               color: Color(0xFF1D1D1F),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            'v$appVersion',
+            style: const TextStyle(
+              fontSize: 11,
+              color: Color(0xFFC7C7CC),
             ),
           ),
           const Spacer(),

@@ -1,5 +1,8 @@
 import 'dart:io' show Platform;
 
+/// App version
+const String appVersion = '2.0.2';
+
 /// API Constants
 class ApiConstants {
   static const String tokenUrl =

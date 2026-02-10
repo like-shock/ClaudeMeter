@@ -332,6 +332,7 @@ class _ClaudeMeterAppState extends State<ClaudeMeterApp> with WindowListener {
       case _AppScreen.modeSelect:
         body = ModeSelectScreen(
           onModeSelected: _handleModeSelect,
+          onQuit: _handleQuit,
         );
         break;
       case _AppScreen.settings:
