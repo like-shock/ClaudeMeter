@@ -104,6 +104,26 @@ class TokenUsage {
 
   int get totalTokens =>
       inputTokens + cacheCreationInputTokens + cacheReadInputTokens + outputTokens;
+
+  /// Serialize for cost cache file.
+  Map<String, dynamic> toCacheJson() => {
+        'i': inputTokens,
+        'cc': cacheCreationInputTokens,
+        'cr': cacheReadInputTokens,
+        'e5': ephemeral5mInputTokens,
+        'e1': ephemeral1hInputTokens,
+        'o': outputTokens,
+      };
+
+  /// Deserialize from cost cache file.
+  factory TokenUsage.fromCacheJson(Map<String, dynamic> json) => TokenUsage(
+        inputTokens: json['i'] as int? ?? 0,
+        cacheCreationInputTokens: json['cc'] as int? ?? 0,
+        cacheReadInputTokens: json['cr'] as int? ?? 0,
+        ephemeral5mInputTokens: json['e5'] as int? ?? 0,
+        ephemeral1hInputTokens: json['e1'] as int? ?? 0,
+        outputTokens: json['o'] as int? ?? 0,
+      );
 }
 
 /// Pricing table and cost calculation utilities.

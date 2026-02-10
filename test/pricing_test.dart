@@ -82,6 +82,49 @@ void main() {
       );
       expect(usage.totalTokens, 430);
     });
+
+    test('toCacheJson produces compact keys', () {
+      const usage = TokenUsage(
+        inputTokens: 100,
+        cacheCreationInputTokens: 200,
+        cacheReadInputTokens: 50,
+        ephemeral5mInputTokens: 30,
+        ephemeral1hInputTokens: 170,
+        outputTokens: 80,
+      );
+      final json = usage.toCacheJson();
+      expect(json['i'], 100);
+      expect(json['cc'], 200);
+      expect(json['cr'], 50);
+      expect(json['e5'], 30);
+      expect(json['e1'], 170);
+      expect(json['o'], 80);
+    });
+
+    test('fromCacheJson/toCacheJson roundtrip', () {
+      const original = TokenUsage(
+        inputTokens: 986,
+        cacheCreationInputTokens: 33752,
+        cacheReadInputTokens: 18209,
+        ephemeral5mInputTokens: 10000,
+        ephemeral1hInputTokens: 23752,
+        outputTokens: 528,
+      );
+      final restored = TokenUsage.fromCacheJson(original.toCacheJson());
+      expect(restored.inputTokens, original.inputTokens);
+      expect(restored.cacheCreationInputTokens, original.cacheCreationInputTokens);
+      expect(restored.cacheReadInputTokens, original.cacheReadInputTokens);
+      expect(restored.ephemeral5mInputTokens, original.ephemeral5mInputTokens);
+      expect(restored.ephemeral1hInputTokens, original.ephemeral1hInputTokens);
+      expect(restored.outputTokens, original.outputTokens);
+    });
+
+    test('fromCacheJson handles missing keys with defaults', () {
+      final usage = TokenUsage.fromCacheJson({});
+      expect(usage.inputTokens, 0);
+      expect(usage.outputTokens, 0);
+      expect(usage.ephemeral5mInputTokens, 0);
+    });
   });
 
   group('PricingTable', () {

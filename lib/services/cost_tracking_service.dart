@@ -6,7 +6,21 @@ import '../utils/pricing.dart';
 
 /// Service that parses local JSONL files from Claude Code sessions
 /// to calculate API usage costs.
+///
+/// Uses mtime-based caching: on each refresh cycle, file mtimes are compared
+/// against the cached state. If no files changed, the cached CostData is
+/// returned immediately (fast path). Otherwise a full re-parse is performed
+/// and the cache is updated.
 class CostTrackingService {
+  static const int _cacheVersion = 1;
+
+  /// In-memory cached cost data from the last successful parse or cache load.
+  CostData? _cachedCostData;
+
+  /// In-memory file states from the last successful parse or cache load.
+  /// Key: file path, Value: {mtime (ms since epoch), size (bytes)}.
+  Map<String, _FileState>? _cachedFileStates;
+
   /// Get the real user home directory, resolving macOS sandbox redirection.
   /// In sandbox, HOME is redirected to the app container path;
   /// we extract the real home to read Claude CLI files.
@@ -25,12 +39,24 @@ class CostTrackingService {
     return home;
   }
 
+  /// Get the sandbox-safe home directory (for cache file writing).
+  static String get _sandboxHomePath {
+    return Platform.environment['HOME'] ??
+        Platform.environment['USERPROFILE'] ??
+        '';
+  }
+
   /// Get the Claude projects directory path.
   static String get _claudeProjectsPath {
     return '$_realHomePath/.claude/projects';
   }
 
-  /// Scan all JSONL files and compute cost data.
+  /// Get the cache file path (inside app sandbox on macOS).
+  static String get _cacheFilePath {
+    return '$_sandboxHomePath/.claudemeter_cost_cache.json';
+  }
+
+  /// Scan all JSONL files and compute cost data, using mtime cache.
   Future<CostData> calculateCosts() async {
     final projectsDir = Directory(_claudeProjectsPath);
     if (!projectsDir.existsSync()) {
@@ -48,9 +74,70 @@ class CostTrackingService {
 
     if (jsonlFiles.isEmpty) return CostData.empty();
 
-    // Parse all files and accumulate costs.
-    // Deduplicate by message.id + requestId — Claude Code writes the same
-    // assistant message multiple times (streaming chunks) in JSONL.
+    // Collect current file states (mtime + size)
+    final currentFileStates = <String, _FileState>{};
+    for (final file in jsonlFiles) {
+      try {
+        final stat = file.statSync();
+        currentFileStates[file.path] = _FileState(
+          mtimeMs: stat.modified.millisecondsSinceEpoch,
+          size: stat.size,
+        );
+      } catch (_) {
+        // File may have been deleted between listing and stat
+      }
+    }
+
+    // Try in-memory cache first, then disk cache
+    if (_cachedCostData != null && _cachedFileStates != null) {
+      if (_fileStatesMatch(_cachedFileStates!, currentFileStates)) {
+        return _cachedCostData!;
+      }
+    } else {
+      // Try loading from disk cache
+      final diskCache = await _loadCache();
+      if (diskCache != null) {
+        _cachedCostData = diskCache.costData;
+        _cachedFileStates = diskCache.fileStates;
+        if (_fileStatesMatch(diskCache.fileStates, currentFileStates)) {
+          return diskCache.costData;
+        }
+      }
+    }
+
+    // Cache miss — full re-parse
+    final costData = await _fullParse(jsonlFiles);
+
+    // Update in-memory cache
+    _cachedCostData = costData;
+    _cachedFileStates = currentFileStates;
+
+    // Persist to disk (fire-and-forget, don't block return)
+    _saveCache(currentFileStates, costData);
+
+    return costData;
+  }
+
+  /// Compare two file state maps. Returns true if all paths, mtimes,
+  /// and sizes are identical.
+  bool _fileStatesMatch(
+    Map<String, _FileState> cached,
+    Map<String, _FileState> current,
+  ) {
+    if (cached.length != current.length) return false;
+    for (final entry in current.entries) {
+      final cachedState = cached[entry.key];
+      if (cachedState == null) return false;
+      if (cachedState.mtimeMs != entry.value.mtimeMs ||
+          cachedState.size != entry.value.size) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /// Perform a full parse of all JSONL files.
+  Future<CostData> _fullParse(List<File> jsonlFiles) async {
     final seenMessages = <String>{};
     final dailyCosts = <String, _DailyAccumulator>{};
     final sessionIds = <String>{};
@@ -100,6 +187,59 @@ class CostTrackingService {
       dailyCosts: dailyList,
       fetchedAt: DateTime.now(),
     );
+  }
+
+  /// Load cache from disk. Returns null if cache is missing or invalid.
+  Future<_DiskCache?> _loadCache() async {
+    try {
+      final file = File(_cacheFilePath);
+      if (!file.existsSync()) return null;
+
+      final content = await file.readAsString();
+      final json = jsonDecode(content) as Map<String, dynamic>;
+
+      if (json['version'] != _cacheVersion) return null;
+
+      final fileStatesJson = json['fileStates'] as Map<String, dynamic>? ?? {};
+      final fileStates = fileStatesJson.map((k, v) {
+        final m = v as Map<String, dynamic>;
+        return MapEntry(k, _FileState(
+          mtimeMs: m['mtime'] as int,
+          size: m['size'] as int,
+        ));
+      });
+
+      final costDataJson = json['costData'] as Map<String, dynamic>?;
+      if (costDataJson == null) return null;
+
+      final costData = CostData.fromJson(costDataJson);
+      return _DiskCache(fileStates: fileStates, costData: costData);
+    } catch (e) {
+      if (kDebugMode) debugPrint('Error loading cost cache: $e');
+      return null;
+    }
+  }
+
+  /// Save cache to disk (async, errors are silently ignored).
+  Future<void> _saveCache(
+    Map<String, _FileState> fileStates,
+    CostData costData,
+  ) async {
+    try {
+      final json = {
+        'version': _cacheVersion,
+        'lastScanAt': DateTime.now().toIso8601String(),
+        'fileStates': fileStates.map((k, v) => MapEntry(k, {
+              'mtime': v.mtimeMs,
+              'size': v.size,
+            })),
+        'costData': costData.toJson(),
+      };
+      final file = File(_cacheFilePath);
+      await file.writeAsString(jsonEncode(json));
+    } catch (e) {
+      if (kDebugMode) debugPrint('Error saving cost cache: $e');
+    }
   }
 
   /// Recursively collect .jsonl files from projects directory.
@@ -198,6 +338,18 @@ class CostTrackingService {
     final local = dt.toLocal();
     return '${local.year}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')}';
   }
+}
+
+class _FileState {
+  final int mtimeMs;
+  final int size;
+  const _FileState({required this.mtimeMs, required this.size});
+}
+
+class _DiskCache {
+  final Map<String, _FileState> fileStates;
+  final CostData costData;
+  const _DiskCache({required this.fileStates, required this.costData});
 }
 
 class _DailyAccumulator {

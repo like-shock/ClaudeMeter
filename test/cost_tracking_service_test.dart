@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:claude_meter/models/cost_data.dart';
 import 'package:claude_meter/services/cost_tracking_service.dart';
+import 'package:claude_meter/utils/pricing.dart';
 
 void main() {
   group('CostTrackingService', () {
@@ -156,6 +158,140 @@ void main() {
       expect(parsed['type'], 'assistant');
       final message = parsed['message'] as Map<String, dynamic>;
       expect(message.containsKey('usage'), isFalse);
+    });
+  });
+
+  group('CostTrackingService cache', () {
+    test('cache file roundtrip preserves CostData via JSON', () {
+      // Simulate what _saveCache / _loadCache does:
+      // serialize CostData → JSON string → deserialize back
+      final original = CostData(
+        totalSessions: 3,
+        totalFiles: 7,
+        oldestSession: DateTime.utc(2026, 1, 15),
+        newestSession: DateTime.utc(2026, 2, 9),
+        fetchedAt: DateTime.utc(2026, 2, 9, 14, 30),
+        dailyCosts: [
+          DailyCost(
+            date: DateTime(2026, 2, 9),
+            cost: 5.25,
+            messageCount: 42,
+            totalTokens: 250000,
+            modelTokens: {
+              'claude-opus-4-6': const TokenUsage(
+                inputTokens: 10000,
+                cacheCreationInputTokens: 5000,
+                cacheReadInputTokens: 2000,
+                ephemeral5mInputTokens: 1000,
+                ephemeral1hInputTokens: 4000,
+                outputTokens: 3000,
+              ),
+            },
+          ),
+        ],
+      );
+
+      // Simulate cache file content
+      final cacheJson = {
+        'version': 1,
+        'lastScanAt': DateTime.now().toIso8601String(),
+        'fileStates': {
+          '/path/to/file.jsonl': {'mtime': 1707400000000, 'size': 4096},
+        },
+        'costData': original.toJson(),
+      };
+
+      final encoded = jsonEncode(cacheJson);
+      final decoded = jsonDecode(encoded) as Map<String, dynamic>;
+
+      expect(decoded['version'], 1);
+
+      final fileStates = decoded['fileStates'] as Map<String, dynamic>;
+      expect(fileStates.length, 1);
+      final state = fileStates['/path/to/file.jsonl'] as Map<String, dynamic>;
+      expect(state['mtime'], 1707400000000);
+      expect(state['size'], 4096);
+
+      final costData =
+          CostData.fromJson(decoded['costData'] as Map<String, dynamic>);
+      expect(costData.totalSessions, 3);
+      expect(costData.totalFiles, 7);
+      expect(costData.dailyCosts.length, 1);
+      expect(costData.dailyCosts[0].cost, 5.25);
+      expect(costData.dailyCosts[0].modelTokens['claude-opus-4-6']!.inputTokens,
+          10000);
+    });
+
+    test('file state comparison detects changes', () {
+      // Simulate the _fileStatesMatch logic
+      bool statesMatch(
+        Map<String, Map<String, int>> cached,
+        Map<String, Map<String, int>> current,
+      ) {
+        if (cached.length != current.length) return false;
+        for (final entry in current.entries) {
+          final cachedState = cached[entry.key];
+          if (cachedState == null) return false;
+          if (cachedState['mtime'] != entry.value['mtime'] ||
+              cachedState['size'] != entry.value['size']) {
+            return false;
+          }
+        }
+        return true;
+      }
+
+      final state1 = {
+        '/a.jsonl': {'mtime': 1000, 'size': 100},
+        '/b.jsonl': {'mtime': 2000, 'size': 200},
+      };
+      final state1Copy = {
+        '/a.jsonl': {'mtime': 1000, 'size': 100},
+        '/b.jsonl': {'mtime': 2000, 'size': 200},
+      };
+
+      // Same states → match
+      expect(statesMatch(state1, state1Copy), isTrue);
+
+      // Changed mtime → no match
+      final stateChanged = {
+        '/a.jsonl': {'mtime': 1000, 'size': 100},
+        '/b.jsonl': {'mtime': 3000, 'size': 200},
+      };
+      expect(statesMatch(state1, stateChanged), isFalse);
+
+      // New file added → no match
+      final stateAdded = {
+        '/a.jsonl': {'mtime': 1000, 'size': 100},
+        '/b.jsonl': {'mtime': 2000, 'size': 200},
+        '/c.jsonl': {'mtime': 3000, 'size': 300},
+      };
+      expect(statesMatch(state1, stateAdded), isFalse);
+
+      // File removed → no match
+      final stateRemoved = {
+        '/a.jsonl': {'mtime': 1000, 'size': 100},
+      };
+      expect(statesMatch(state1, stateRemoved), isFalse);
+
+      // Changed size → no match
+      final stateSizeChanged = {
+        '/a.jsonl': {'mtime': 1000, 'size': 150},
+        '/b.jsonl': {'mtime': 2000, 'size': 200},
+      };
+      expect(statesMatch(state1, stateSizeChanged), isFalse);
+    });
+
+    test('CostTrackingService consecutive calls return consistent results',
+        () async {
+      // Two consecutive calls with same instance should return identical data
+      // (either from cache or from re-parse — either way, consistent).
+      final service = CostTrackingService();
+      final result1 = await service.calculateCosts();
+      final result2 = await service.calculateCosts();
+
+      expect(result2.totalSessions, result1.totalSessions);
+      expect(result2.totalFiles, result1.totalFiles);
+      expect(result2.dailyCosts.length, result1.dailyCosts.length);
     });
   });
 }
